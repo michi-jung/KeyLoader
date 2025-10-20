@@ -1,5 +1,8 @@
 package ly.secore.compute;
 
+import ly.secore.compute.compute_device_mfg_reset_secret_s;
+import ly.secore.compute.KeyLoader;
+
 import java.io.InputStream;
 import java.io.IOException;
 
@@ -9,9 +12,12 @@ import org.apache.logging.log4j.LogManager;
 
 import com.sun.jna.Callback;
 import com.sun.jna.Library;
+import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
+import com.sun.jna.Structure;
+import com.sun.jna.ptr.IntByReference;
 
 public class ComputeDevice implements AutoCloseable {
 
@@ -60,8 +66,22 @@ public class ComputeDevice implements AutoCloseable {
 
     int compute_device_request_deferred_reboot(Pointer compute_device);
 
-    int compute_device_factory_flash(Pointer compute_device,
+    int compute_device_factory_flash(Pointer                             compute_device,
                                      compute_device_get_image_chunk_cb_t get_image_chunk);
+
+    int compute_device_get_mfg_reset_secret_derivation_input(
+            Pointer         compute_device,
+            IntByReference  mfg_reset_secret_derivation_input);
+
+    int compute_device_lock(Pointer                           compute_device,
+                            compute_device_mfg_reset_secret_s mfgReset);
+
+    int compute_device_set_inc_key_step_1(
+            Pointer compute_device,
+            byte[] initiator_random,
+            byte[] initiator_auth_pub_key,
+            Memory responder_random,
+            Memory responder_eph_pub_key);
   }
 
   protected Pointer compute_device;
@@ -183,9 +203,63 @@ public class ComputeDevice implements AutoCloseable {
             return bytesRead;
           }
         };
-    
+
     return ComputeDeviceProxyLibrary.INSTANCE.compute_device_factory_flash(compute_device,
                                                                            get_chunk_cb);
+  }
+
+  public int getMfgResetSecretDerivationInput() throws IOException {
+    IntByReference derivationInput = new IntByReference();
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE.
+              compute_device_get_mfg_reset_secret_derivation_input(compute_device, derivationInput);
+
+    if (ret < 0)
+      {
+        throw new IOException("compute_device_get_mfg_reset_secret_derivation_input() failed.");
+      }
+
+    return derivationInput.getValue();
+  }
+
+  public void lock(compute_device_mfg_reset_secret_s mfgReset) throws IOException {
+    int ret = 0;
+
+    mfgReset.write();
+    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_lock(compute_device, mfgReset);
+
+    if (ret < 0)
+      {
+        throw new IOException("compute_device_lock() failed.");
+      }
+  }
+
+  public KeyLoader.KeyAgreementParameters setIncKeyStep1(KeyLoader.KeyAgreementParameters params)
+    throws IOException
+  {
+    Memory responderRandom = new Memory(KeyLoader.KEY_AGREEMENT_RANDOM_LEN);
+    Memory responderEphPubKey = new Memory(KeyLoader.SECP256R1_PUBLIC_KEY_LEN);
+    int ret = 0;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE
+              .compute_device_set_inc_key_step_1(compute_device,
+                                                 params.initiatorRandom,
+                                                 params.initiatorAuthPubKey,
+                                                 responderRandom,
+                                                 responderEphPubKey);
+    if (ret < 0)
+      {
+        throw new IOException("compute_device_set_inc_key_step_1() failed.");
+      }
+
+    params.responderRandom = responderRandom.getByteArray(0, (int)responderRandom.size());
+    params.responderEphPubKey = responderEphPubKey.getByteArray(0, (int)responderEphPubKey.size());
+
+    responderRandom.disposeAll();
+    responderEphPubKey.disposeAll();
+
+    return params;
   }
 
   public void close()
