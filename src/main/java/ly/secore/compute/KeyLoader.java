@@ -1,6 +1,6 @@
 package ly.secore.compute;
 
-import ly.secore.compute.compute_device_mfg_reset_secret_s;
+import ly.secore.compute.ComputeDevice;
 
 import java.io.IOException;
 import java.util.stream.Stream;
@@ -47,13 +47,13 @@ public class KeyLoader implements AutoCloseable {
     hSession = p11.C_OpenSession(slotID, PKCS11Constants.CKF_SERIAL_SESSION, 0, null);
   }
 
-  public compute_device_mfg_reset_secret_s deriveMfgResetSecret(int derivationInput)
+  public ComputeDevice.compute_device_mfg_reset_secret_s deriveMfgResetSecret(int derivationInput)
       throws IOException, PKCS11Exception
   {
     CK_ATTRIBUTE[] mfgResetMasterKeyTemplate = new CK_ATTRIBUTE[3];
     CK_MECHANISM ckm_aes_ecb = new CK_MECHANISM();
     Memory memory;
-    compute_device_mfg_reset_secret_s mfgResetSecret;
+    ComputeDevice.compute_device_mfg_reset_secret_s mfgResetSecret;
     byte[] cleartext;
     byte[] ciphertext;
     long[] hMasterKey;
@@ -93,7 +93,7 @@ public class KeyLoader implements AutoCloseable {
     ciphertext = p11.C_Encrypt(hSession, null, cleartext);
 
     memory.write(0, ciphertext, 0, 16);
-    mfgResetSecret = new compute_device_mfg_reset_secret_s(memory);
+    mfgResetSecret = new ComputeDevice.compute_device_mfg_reset_secret_s(memory);
 
     return mfgResetSecret;
   }

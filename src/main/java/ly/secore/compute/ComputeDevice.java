@@ -1,6 +1,5 @@
 package ly.secore.compute;
 
-import ly.secore.compute.compute_device_mfg_reset_secret_s;
 import ly.secore.compute.KeyLoader;
 
 import java.io.InputStream;
@@ -20,6 +19,21 @@ import com.sun.jna.Structure;
 import com.sun.jna.ptr.IntByReference;
 
 public class ComputeDevice implements AutoCloseable {
+
+  @Structure.FieldOrder({ "mfg_reset_secret" })
+  public static class compute_device_mfg_reset_secret_s extends Structure {
+    public int[] mfg_reset_secret = new int[2];
+
+    public compute_device_mfg_reset_secret_s() { super(); }
+
+    public compute_device_mfg_reset_secret_s(Pointer p) {
+      super(p);
+      read();
+    }
+
+    public static class ByReference extends compute_device_mfg_reset_secret_s implements Structure.ByReference {}
+    public static class ByValue extends compute_device_mfg_reset_secret_s implements Structure.ByValue {}
+  }
 
   private static final Logger LOGGER = LogManager.getLogger();
 
