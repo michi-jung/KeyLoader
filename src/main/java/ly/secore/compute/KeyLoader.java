@@ -11,6 +11,8 @@ import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 
 import iaik.pkcs.pkcs11.wrapper.CK_ATTRIBUTE;
+import iaik.pkcs.pkcs11.wrapper.CK_ECDH1_DERIVE_PARAMS;
+import iaik.pkcs.pkcs11.wrapper.CK_KEY_DERIVATION_STRING_DATA;
 import iaik.pkcs.pkcs11.wrapper.CK_MECHANISM;
 import iaik.pkcs.pkcs11.wrapper.PKCS11;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Connector;
@@ -25,18 +27,32 @@ public class KeyLoader implements AutoCloseable {
   public final static int SECP256R1_PUBLIC_KEY_INFO_LEN  = 91;
   public final static int SECP256R1_PUBLIC_KEY_LEN       = 67;
   public final static int SECP256R1_SIGNATURE_LEN        = 64;
+  public final static int AES_CMAC_LEN                   = 16;
 
-  public static class KeyAgreementParameters {
+  public final static long CKA_X9_143_KBH      = 0x85EC0007L;
+  public final static long CKM_X9_143_KEY_WRAP = 0x85EC0001L;
+
+  public static class SetIncKeyContext {
+    public byte[] incKeyDerivationInfo;
+
     public byte[] initiatorRandom;
     public byte[] initiatorAuthPubKey;
     public byte[] responderRandom;
     public byte[] responderEphPubKey;
     public byte[] initiatorEphPubKey;
     public byte[] initiatorSignature;
+    public byte[] responderCMAC;
+    public byte[] initiatorCMAC;
+    public byte[] initiatorKeyblock;
+
+    public long hInitiatorAuthPrivKey;
+    public long hInitiatorEphPrivKey;
   };
 
   protected final static byte[] SUBJECT_PUBLIC_KEY_INFO_PREFIX =
       HexFormat.of().parseHex("3059301306072A8648CE3D020106082A8648CE3D030107034200");
+
+  protected final static byte[] OID_SECP256R1 = HexFormat.of().parseHex("06082A8648CE3D030107");
 
   public KeyLoader(String pkcs11ModuleFilename, long slotID)
       throws IOException, PKCS11Exception
@@ -47,13 +63,13 @@ public class KeyLoader implements AutoCloseable {
     hSession = p11.C_OpenSession(slotID, PKCS11Constants.CKF_SERIAL_SESSION, 0, null);
   }
 
-  public ComputeDevice.compute_device_mfg_reset_secret_s deriveMfgResetSecret(int derivationInput)
+  public ComputeDevice.ManufacturingResetSecret deriveMfgResetSecret(int derivationInput)
       throws IOException, PKCS11Exception
   {
     CK_ATTRIBUTE[] mfgResetMasterKeyTemplate = new CK_ATTRIBUTE[3];
     CK_MECHANISM ckm_aes_ecb = new CK_MECHANISM();
     Memory memory;
-    ComputeDevice.compute_device_mfg_reset_secret_s mfgResetSecret;
+    ComputeDevice.ManufacturingResetSecret mfgResetSecret;
     byte[] cleartext;
     byte[] ciphertext;
     long[] hMasterKey;
@@ -93,15 +109,15 @@ public class KeyLoader implements AutoCloseable {
     ciphertext = p11.C_Encrypt(hSession, null, cleartext);
 
     memory.write(0, ciphertext, 0, 16);
-    mfgResetSecret = new ComputeDevice.compute_device_mfg_reset_secret_s(memory);
+    mfgResetSecret = new ComputeDevice.ManufacturingResetSecret(memory);
 
     return mfgResetSecret;
   }
 
-  public KeyAgreementParameters keyAgreementStep1()
+  public SetIncKeyContext setIncKeyStep1(byte[] reincarnationKeyDerivationInfo)
       throws IOException, PKCS11Exception
   {
-    KeyAgreementParameters params;
+    SetIncKeyContext ctx;
     CK_ATTRIBUTE[] kldAuthKeyTemplate = new CK_ATTRIBUTE[3];
     CK_ATTRIBUTE[] publicKeyInfoAttr = new CK_ATTRIBUTE[1];
     long[] hKLDAuthKey;
@@ -142,21 +158,353 @@ public class KeyLoader implements AutoCloseable {
       throw new IOException("Malformed subjectPublicKeyInfo.");
     }
 
-    params = new KeyAgreementParameters();
-    params.initiatorAuthPubKey = new byte[SECP256R1_PUBLIC_KEY_LEN];
-    params.initiatorAuthPubKey[0] = 0x04; /* OCTET STRING */
-    params.initiatorAuthPubKey[1] = 0x41; /* Length: 65 Bytes */
+    ctx = new SetIncKeyContext();
+    ctx.incKeyDerivationInfo = reincarnationKeyDerivationInfo;
+    ctx.initiatorAuthPubKey = new byte[SECP256R1_PUBLIC_KEY_LEN];
+    ctx.initiatorAuthPubKey[0] = 0x04; /* OCTET STRING */
+    ctx.initiatorAuthPubKey[1] = 0x41; /* Length: 65 Bytes */
     System.arraycopy(publicKeyInfo,
                      SUBJECT_PUBLIC_KEY_INFO_PREFIX.length,
-                     params.initiatorAuthPubKey,
+                     ctx.initiatorAuthPubKey,
                      2,
                      65);
+    ctx.initiatorRandom = new byte[KEY_AGREEMENT_RANDOM_LEN];
+    p11.C_GenerateRandom(hSession, ctx.initiatorRandom);
+    ctx.hInitiatorAuthPrivKey = hKLDAuthKey[0];
 
-    params.initiatorRandom = new byte[KEY_AGREEMENT_RANDOM_LEN];
+    return ctx;
+  }
 
-    p11.C_GenerateRandom(hSession, params.initiatorRandom);
+  public void setIncKeyStep2(SetIncKeyContext ctx)
+      throws IOException, PKCS11Exception
+  {
+    CK_ATTRIBUTE[] pubKeyTemplate = new CK_ATTRIBUTE[3];
+    CK_ATTRIBUTE[] privKeyTemplate = new CK_ATTRIBUTE[3];
+    CK_ATTRIBUTE[] ecPointAttr = new CK_ATTRIBUTE[1];
+    CK_MECHANISM ckm_ecdsa_sha256 = new CK_MECHANISM();
+    CK_MECHANISM ckm_ec_key_pair_gen = new CK_MECHANISM();
+    long[] hKeys;
 
-    return params;
+    pubKeyTemplate[0] = new CK_ATTRIBUTE();
+    pubKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    pubKeyTemplate[0].pValue = PKCS11Constants.CKO_PUBLIC_KEY;
+
+    pubKeyTemplate[1] = new CK_ATTRIBUTE();
+    pubKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    pubKeyTemplate[1].pValue = PKCS11Constants.CKK_EC;
+
+    pubKeyTemplate[2] = new CK_ATTRIBUTE();
+    pubKeyTemplate[2].type = PKCS11Constants.CKA_EC_PARAMS;
+    pubKeyTemplate[2].pValue = OID_SECP256R1;
+
+    privKeyTemplate[0] = new CK_ATTRIBUTE();
+    privKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    privKeyTemplate[0].pValue = PKCS11Constants.CKO_PRIVATE_KEY;
+
+    privKeyTemplate[1] = new CK_ATTRIBUTE();
+    privKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    privKeyTemplate[1].pValue = PKCS11Constants.CKK_EC;
+
+    privKeyTemplate[2] = new CK_ATTRIBUTE();
+    privKeyTemplate[2].type = PKCS11Constants.CKA_DERIVE;
+    privKeyTemplate[2].pValue = true;
+
+    ckm_ec_key_pair_gen.mechanism = PKCS11Constants.CKM_EC_KEY_PAIR_GEN;
+
+    hKeys = p11.C_GenerateKeyPair(hSession,
+                                  ckm_ec_key_pair_gen,
+                                  pubKeyTemplate,
+                                  privKeyTemplate,
+                                  true);
+
+    ecPointAttr[0] = new CK_ATTRIBUTE();
+    ecPointAttr[0].type = PKCS11Constants.CKA_EC_POINT;
+
+    p11.C_GetAttributeValue(hSession, hKeys[0], ecPointAttr, true);
+    p11.C_DestroyObject(hSession, hKeys[0]);
+
+    ctx.initiatorEphPubKey = (byte[])ecPointAttr[0].pValue;
+
+    if (ctx.initiatorEphPubKey.length != SECP256R1_PUBLIC_KEY_LEN) {
+      throw new IOException("Unexpected secp256r1 public key len");
+    }
+
+    ctx.hInitiatorEphPrivKey = hKeys[1];
+
+    ckm_ecdsa_sha256.mechanism = PKCS11Constants.CKM_ECDSA_SHA256;
+
+    p11.C_SignInit(hSession, ckm_ecdsa_sha256, ctx.hInitiatorAuthPrivKey, true);
+    p11.C_SignUpdate(hSession, ctx.responderRandom);
+    p11.C_SignUpdate(hSession, ctx.initiatorRandom);
+    p11.C_SignUpdate(hSession, ctx.initiatorEphPubKey);
+    ctx.initiatorSignature = p11.C_SignFinal(hSession);
+
+    if (ctx.initiatorSignature.length != SECP256R1_SIGNATURE_LEN)
+    {
+      throw new IOException("Unexpected secp256r1 signature len");
+    }
+  }
+
+  public long getReincarnationMasterKey()
+      throws IOException, PKCS11Exception
+  {
+    CK_ATTRIBUTE[] reincarnationMasterKeyTemplate = new CK_ATTRIBUTE[3];
+    long[] hKeys;
+
+    reincarnationMasterKeyTemplate[0] = new CK_ATTRIBUTE();
+    reincarnationMasterKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    reincarnationMasterKeyTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
+
+    reincarnationMasterKeyTemplate[1] = new CK_ATTRIBUTE();
+    reincarnationMasterKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    reincarnationMasterKeyTemplate[1].pValue = PKCS11Constants.CKK_AES;
+
+    reincarnationMasterKeyTemplate[2] = new CK_ATTRIBUTE();
+    reincarnationMasterKeyTemplate[2].type = PKCS11Constants.CKA_LABEL;
+    reincarnationMasterKeyTemplate[2].pValue = new String("000DEB06").toCharArray();
+
+    p11.C_FindObjectsInit(hSession, reincarnationMasterKeyTemplate, true);
+    hKeys = p11.C_FindObjects(hSession, 1);
+    p11.C_FindObjectsFinal(hSession);
+
+    if (hKeys.length != 1) {
+      throw new IOException("Did not find Reincarnation Master Key.");
+    }
+
+    return hKeys[0];
+  }
+
+  public long deriveReincarnationKey(byte[] derivationInfo)
+      throws IOException, PKCS11Exception
+  {
+    CK_MECHANISM ckm_sha256 = new CK_MECHANISM();
+    CK_MECHANISM ckm_aes_ecb_encrypt_data = new CK_MECHANISM();
+    CK_ATTRIBUTE[] reincarnationKeyTemplate = new CK_ATTRIBUTE[6];
+    CK_KEY_DERIVATION_STRING_DATA derivationData = new CK_KEY_DERIVATION_STRING_DATA();
+    long hReincarnationMasterKey = getReincarnationMasterKey();
+
+    ckm_sha256.mechanism = PKCS11Constants.CKM_SHA256;
+
+    p11.C_DigestInit(hSession, ckm_sha256, true);
+    p11.C_DigestUpdate(hSession, derivationInfo);
+    derivationData.pData = p11.C_DigestFinal(hSession);
+
+    reincarnationKeyTemplate[0] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    reincarnationKeyTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
+
+    reincarnationKeyTemplate[1] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    reincarnationKeyTemplate[1].pValue = PKCS11Constants.CKK_AES;
+
+    reincarnationKeyTemplate[2] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[2].type = PKCS11Constants.CKA_WRAP;
+    reincarnationKeyTemplate[2].pValue = true;
+
+    reincarnationKeyTemplate[3] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[3].type = PKCS11Constants.CKA_UNWRAP;
+    reincarnationKeyTemplate[3].pValue = true;
+
+    reincarnationKeyTemplate[4] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[4].type = PKCS11Constants.CKA_LABEL;
+    reincarnationKeyTemplate[4].pValue = new String("X9_143_MASTER_KBPK").toCharArray();
+
+    reincarnationKeyTemplate[5] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[5].type = CKA_X9_143_KBH;
+    reincarnationKeyTemplate[5].pValue = new String("D0016K1AD00N0000").toCharArray();
+
+    ckm_aes_ecb_encrypt_data.mechanism  = PKCS11Constants.CKM_AES_ECB_ENCRYPT_DATA;
+    ckm_aes_ecb_encrypt_data.pParameter = derivationData;
+
+    return p11.C_DeriveKey(hSession,
+                           ckm_aes_ecb_encrypt_data,
+                           hReincarnationMasterKey,
+                           reincarnationKeyTemplate,
+                           true);
+  }
+
+  public void setIncKeyStep3(SetIncKeyContext ctx)
+      throws IOException, PKCS11Exception
+  {
+    CK_ECDH1_DERIVE_PARAMS ecdh1_derive_params = new CK_ECDH1_DERIVE_PARAMS();
+    CK_MECHANISM ckm_ecdh1_derive = new CK_MECHANISM();
+    CK_MECHANISM ckm_extract_key_from_key = new CK_MECHANISM();
+    CK_MECHANISM ckm_aes_cmac = new CK_MECHANISM();
+    CK_MECHANISM ckm_x9_143_key_wrap = new CK_MECHANISM();
+    CK_ATTRIBUTE[] masterSecretTemplate = new CK_ATTRIBUTE[4];
+    CK_ATTRIBUTE[] responderMACKeyTemplate = new CK_ATTRIBUTE[4];
+    CK_ATTRIBUTE[] initiatorMACKeyTemplate = new CK_ATTRIBUTE[4];
+    CK_ATTRIBUTE[] ephKBPKTemplate = new CK_ATTRIBUTE[5];
+    long extractParams;
+    long masterSecretValueLen = 96;
+    long macKeyValueLen = 32;
+    long hMasterSecret;
+    long hResponderMACKey;
+    long hInitiatorMACKey;
+    long hReincarnationKey;
+    long hEphKBPKey;
+
+    masterSecretTemplate[0] = new CK_ATTRIBUTE();
+    masterSecretTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    masterSecretTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
+
+    masterSecretTemplate[1] = new CK_ATTRIBUTE();
+    masterSecretTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    masterSecretTemplate[1].pValue = PKCS11Constants.CKK_GENERIC_SECRET;
+
+    masterSecretTemplate[2] = new CK_ATTRIBUTE();
+    masterSecretTemplate[2].type = PKCS11Constants.CKA_VALUE_LEN;
+    masterSecretTemplate[2].pValue = masterSecretValueLen;
+
+    masterSecretTemplate[3] = new CK_ATTRIBUTE();
+    masterSecretTemplate[3].type = PKCS11Constants.CKA_DERIVE;
+    masterSecretTemplate[3].pValue = true;
+
+    ecdh1_derive_params.kdf = PKCS11Constants.CKD_SHA384_KDF;
+    ecdh1_derive_params.pSharedData = new byte[2 * KEY_AGREEMENT_RANDOM_LEN];
+    System.arraycopy(ctx.responderRandom,
+                     0,
+                     ecdh1_derive_params.pSharedData,
+                     0,
+                     KEY_AGREEMENT_RANDOM_LEN);
+    System.arraycopy(ctx.initiatorRandom,
+                     0,
+                     ecdh1_derive_params.pSharedData,
+                     KEY_AGREEMENT_RANDOM_LEN,
+                     KEY_AGREEMENT_RANDOM_LEN);
+    ecdh1_derive_params.pPublicData = ctx.responderEphPubKey;
+
+    ckm_ecdh1_derive.mechanism = PKCS11Constants.CKM_ECDH1_DERIVE;
+    ckm_ecdh1_derive.pParameter = ecdh1_derive_params;
+
+    hMasterSecret = p11.C_DeriveKey(hSession,
+                                    ckm_ecdh1_derive,
+                                    ctx.hInitiatorEphPrivKey,
+                                    masterSecretTemplate,
+                                    true);
+    /* Validate POI MAC */
+
+    extractParams = 0;
+    ckm_extract_key_from_key.mechanism = PKCS11Constants.CKM_EXTRACT_KEY_FROM_KEY;
+    ckm_extract_key_from_key.pParameter = extractParams;
+
+    responderMACKeyTemplate[0] = new CK_ATTRIBUTE();
+    responderMACKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    responderMACKeyTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
+
+    responderMACKeyTemplate[1] = new CK_ATTRIBUTE();
+    responderMACKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    responderMACKeyTemplate[1].pValue = PKCS11Constants.CKK_AES;
+
+    responderMACKeyTemplate[2] = new CK_ATTRIBUTE();
+    responderMACKeyTemplate[2].type = PKCS11Constants.CKA_VALUE_LEN;
+    responderMACKeyTemplate[2].pValue = macKeyValueLen;
+
+    responderMACKeyTemplate[3] = new CK_ATTRIBUTE();
+    responderMACKeyTemplate[3].type = PKCS11Constants.CKA_VERIFY;
+    responderMACKeyTemplate[3].pValue = true;
+
+    hResponderMACKey = p11.C_DeriveKey(hSession,
+                                       ckm_extract_key_from_key,
+                                       hMasterSecret,
+                                       responderMACKeyTemplate,
+                                       true);
+
+    ckm_aes_cmac.mechanism = PKCS11Constants.CKM_AES_CMAC;
+
+    p11.C_VerifyInit(hSession, ckm_aes_cmac, hResponderMACKey, true);
+    p11.C_VerifyUpdate(hSession, ctx.initiatorRandom);
+    p11.C_VerifyUpdate(hSession, ctx.initiatorAuthPubKey);
+    p11.C_VerifyUpdate(hSession, ctx.responderRandom);
+    p11.C_VerifyUpdate(hSession, ctx.responderEphPubKey);
+    p11.C_VerifyUpdate(hSession, ctx.initiatorEphPubKey);
+    p11.C_VerifyUpdate(hSession, ctx.initiatorSignature);
+    p11.C_VerifyFinal(hSession, ctx.responderCMAC);
+    p11.C_DestroyObject(hSession, hResponderMACKey);
+
+    /* Generate HSM MAC */
+
+    extractParams = 256;
+    ckm_extract_key_from_key.mechanism = PKCS11Constants.CKM_EXTRACT_KEY_FROM_KEY;
+    ckm_extract_key_from_key.pParameter = extractParams;
+
+    initiatorMACKeyTemplate[0] = new CK_ATTRIBUTE();
+    initiatorMACKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    initiatorMACKeyTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
+
+    initiatorMACKeyTemplate[1] = new CK_ATTRIBUTE();
+    initiatorMACKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    initiatorMACKeyTemplate[1].pValue = PKCS11Constants.CKK_AES;
+
+    initiatorMACKeyTemplate[2] = new CK_ATTRIBUTE();
+    initiatorMACKeyTemplate[2].type = PKCS11Constants.CKA_VALUE_LEN;
+    initiatorMACKeyTemplate[2].pValue = macKeyValueLen;
+
+    initiatorMACKeyTemplate[3] = new CK_ATTRIBUTE();
+    initiatorMACKeyTemplate[3].type = PKCS11Constants.CKA_SIGN;
+    initiatorMACKeyTemplate[3].pValue = true;
+
+    hInitiatorMACKey = p11.C_DeriveKey(hSession,
+                                       ckm_extract_key_from_key,
+                                       hMasterSecret,
+                                       initiatorMACKeyTemplate,
+                                       true);
+
+    p11.C_SignInit(hSession, ckm_aes_cmac, hInitiatorMACKey, true);
+    p11.C_SignUpdate(hSession, ctx.initiatorRandom);
+    p11.C_SignUpdate(hSession, ctx.initiatorAuthPubKey);
+    p11.C_SignUpdate(hSession, ctx.responderRandom);
+    p11.C_SignUpdate(hSession, ctx.responderEphPubKey);
+    p11.C_SignUpdate(hSession, ctx.initiatorEphPubKey);
+    p11.C_SignUpdate(hSession, ctx.initiatorSignature);
+    ctx.initiatorCMAC = p11.C_SignFinal(hSession);
+
+    /* Derive Reincarnation Key */
+
+    p11.C_DestroyObject(hSession, hInitiatorMACKey);
+
+    hReincarnationKey = deriveReincarnationKey(ctx.incKeyDerivationInfo);
+    ephKBPKTemplate[0] = new CK_ATTRIBUTE();
+    ephKBPKTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    ephKBPKTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
+
+    ephKBPKTemplate[1] = new CK_ATTRIBUTE();
+    ephKBPKTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    ephKBPKTemplate[1].pValue = PKCS11Constants.CKK_AES;
+
+    ephKBPKTemplate[2] = new CK_ATTRIBUTE();
+    ephKBPKTemplate[2].type = PKCS11Constants.CKA_VALUE_LEN;
+    ephKBPKTemplate[2].pValue = macKeyValueLen;
+
+    ephKBPKTemplate[3] = new CK_ATTRIBUTE();
+    ephKBPKTemplate[3].type = PKCS11Constants.CKA_WRAP;
+    ephKBPKTemplate[3].pValue = true;
+
+    ephKBPKTemplate[4] = new CK_ATTRIBUTE();
+    ephKBPKTemplate[4].type = CKA_X9_143_KBH;
+    ephKBPKTemplate[4].pValue = new String("D0016K1AE00N0020").toCharArray();
+
+    extractParams = 512;
+    ckm_extract_key_from_key.mechanism = PKCS11Constants.CKM_EXTRACT_KEY_FROM_KEY;
+    ckm_extract_key_from_key.pParameter = extractParams;
+
+    hEphKBPKey = p11.C_DeriveKey(hSession,
+                                 ckm_extract_key_from_key,
+                                 hMasterSecret,
+                                 ephKBPKTemplate,
+                                 true);
+
+    ckm_x9_143_key_wrap.mechanism = CKM_X9_143_KEY_WRAP;
+    ckm_x9_143_key_wrap.pParameter = new String("D0016K1AD00N0000").toCharArray();
+
+    ctx.initiatorKeyblock = p11.C_WrapKey(hSession,
+                                          ckm_x9_143_key_wrap,
+                                          hEphKBPKey,
+                                          hReincarnationKey,
+                                          true);
+    p11.C_DestroyObject(hSession, hEphKBPKey);
+    p11.C_DestroyObject(hSession, hReincarnationKey);
+    p11.C_DestroyObject(hSession, hMasterSecret);
   }
 
   public void close() {

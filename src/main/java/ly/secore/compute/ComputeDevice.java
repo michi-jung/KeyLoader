@@ -21,18 +21,68 @@ import com.sun.jna.ptr.IntByReference;
 public class ComputeDevice implements AutoCloseable {
 
   @Structure.FieldOrder({ "mfg_reset_secret" })
-  public static class compute_device_mfg_reset_secret_s extends Structure {
+  public static class ManufacturingResetSecret extends Structure {
     public int[] mfg_reset_secret = new int[2];
 
-    public compute_device_mfg_reset_secret_s() { super(); }
+    public ManufacturingResetSecret() { super(); }
 
-    public compute_device_mfg_reset_secret_s(Pointer p) {
+    public ManufacturingResetSecret(Pointer p) {
       super(p);
       read();
     }
 
-    public static class ByReference extends compute_device_mfg_reset_secret_s implements Structure.ByReference {}
-    public static class ByValue extends compute_device_mfg_reset_secret_s implements Structure.ByValue {}
+    public static class ByReference extends ManufacturingResetSecret implements Structure.ByReference {}
+    public static class ByValue extends ManufacturingResetSecret implements Structure.ByValue {}
+  }
+
+  @Structure.FieldOrder({
+    "device_class_uuid",
+    "time_of_production",
+    "serial_number",
+    "device_type_id",
+    "ecl",
+    "mac_address"
+  })
+  public static class ManufacturingInfo extends Structure {
+    public byte[] device_class_uuid = new byte[16];
+    public int time_of_production;
+    public int serial_number;
+    public byte device_type_id;
+    public byte ecl;
+    public byte[] mac_address = new byte[6];
+
+    public ManufacturingInfo() {}
+
+    public ManufacturingInfo(Pointer p) {
+      super(p);
+      read();
+    }
+
+    public static class ByReference extends ManufacturingInfo implements Structure.ByReference {}
+    public static class ByValue extends ManufacturingInfo implements Structure.ByValue {}
+  }
+
+  @Structure.FieldOrder({
+    "time_of_reincarnation",
+    "device_personality",
+    "operating_mode",
+    "master_key_id"
+  })
+  public static class ReincarnationInfo extends Structure {
+    public int time_of_reincarnation;
+    public int device_personality;
+    public int operating_mode;
+    public int master_key_id;
+
+    public ReincarnationInfo() {}
+
+    public ReincarnationInfo(Pointer p) {
+      super(p);
+      read();
+    }
+
+    public static class ByReference extends ReincarnationInfo implements Structure.ByReference {}
+    public static class ByValue extends ReincarnationInfo implements Structure.ByValue {}
   }
 
   private static final Logger LOGGER = LogManager.getLogger();
@@ -87,8 +137,8 @@ public class ComputeDevice implements AutoCloseable {
             Pointer         compute_device,
             IntByReference  mfg_reset_secret_derivation_input);
 
-    int compute_device_lock(Pointer                           compute_device,
-                            compute_device_mfg_reset_secret_s mfgReset);
+    int compute_device_lock(Pointer                  compute_device,
+                            ManufacturingResetSecret mfg_reset);
 
     int compute_device_set_inc_key_step_1(
             Pointer compute_device,
@@ -96,6 +146,25 @@ public class ComputeDevice implements AutoCloseable {
             byte[] initiator_auth_pub_key,
             Memory responder_random,
             Memory responder_eph_pub_key);
+
+    int compute_device_set_inc_key_step_2(
+            Pointer compute_device,
+            byte[] initiator_eph_pub_key,
+            byte[] initiator_signature,
+            Memory responder_cmac);
+
+    int compute_device_set_inc_key_step_3(
+            Pointer compute_device,
+            byte[] initiator_cmac,
+            byte[] initiator_keyblock);
+
+    int compute_device_get_manufacturing_info(
+            Pointer           compute_device,
+            ManufacturingInfo mfg_info);
+
+    int compute_device_get_reincarnation_info(
+            Pointer           compute_device,
+            ReincarnationInfo inc_info);
   }
 
   protected Pointer compute_device;
@@ -237,7 +306,7 @@ public class ComputeDevice implements AutoCloseable {
     return derivationInput.getValue();
   }
 
-  public void lock(compute_device_mfg_reset_secret_s mfgReset) throws IOException {
+  public void lock(ManufacturingResetSecret mfgReset) throws IOException {
     int ret = 0;
 
     mfgReset.write();
@@ -249,7 +318,7 @@ public class ComputeDevice implements AutoCloseable {
       }
   }
 
-  public KeyLoader.KeyAgreementParameters setIncKeyStep1(KeyLoader.KeyAgreementParameters params)
+  public void setIncKeyStep1(KeyLoader.SetIncKeyContext ctx)
     throws IOException
   {
     Memory responderRandom = new Memory(KeyLoader.KEY_AGREEMENT_RANDOM_LEN);
@@ -258,8 +327,8 @@ public class ComputeDevice implements AutoCloseable {
 
     ret = ComputeDeviceProxyLibrary.INSTANCE
               .compute_device_set_inc_key_step_1(compute_device,
-                                                 params.initiatorRandom,
-                                                 params.initiatorAuthPubKey,
+                                                 ctx.initiatorRandom,
+                                                 ctx.initiatorAuthPubKey,
                                                  responderRandom,
                                                  responderEphPubKey);
     if (ret < 0)
@@ -267,13 +336,100 @@ public class ComputeDevice implements AutoCloseable {
         throw new IOException("compute_device_set_inc_key_step_1() failed.");
       }
 
-    params.responderRandom = responderRandom.getByteArray(0, (int)responderRandom.size());
-    params.responderEphPubKey = responderEphPubKey.getByteArray(0, (int)responderEphPubKey.size());
+    ctx.responderRandom = responderRandom.getByteArray(0, (int)responderRandom.size());
+    ctx.responderEphPubKey = responderEphPubKey.getByteArray(0, (int)responderEphPubKey.size());
 
     responderRandom.disposeAll();
     responderEphPubKey.disposeAll();
+  }
 
-    return params;
+  public void setIncKeyStep2(KeyLoader.SetIncKeyContext ctx)
+    throws IOException
+  {
+    Memory responderCMAC = new Memory(KeyLoader.AES_CMAC_LEN);
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE
+              .compute_device_set_inc_key_step_2(compute_device,
+                                                 ctx.initiatorEphPubKey,
+                                                 ctx.initiatorSignature,
+                                                 responderCMAC);
+    if (ret < 0) {
+      throw new IOException("compute_device_set_inc_key_step_2() failed.");
+    }
+
+    ctx.responderCMAC = responderCMAC.getByteArray(0, (int)responderCMAC.size());
+  }
+
+  public void setIncKeyStep3(KeyLoader.SetIncKeyContext ctx)
+    throws IOException
+  {
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE
+              .compute_device_set_inc_key_step_3(compute_device,
+                                                 ctx.initiatorCMAC,
+                                                 ctx.initiatorKeyblock);
+    if (ret < 0) {
+      throw new IOException("compute_device_set_inc_key_step_3() failed.");
+    }
+  }
+
+  public ManufacturingInfo getManufacturingInfo()
+    throws IOException
+  {
+    ManufacturingInfo mfgInfo = new ManufacturingInfo();
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE
+              .compute_device_get_manufacturing_info(compute_device, mfgInfo);
+
+    if (ret < 0) {
+      throw new IOException("compute_device_get_manufacturing_info() failed.");
+    }
+
+    mfgInfo.read();
+
+    return mfgInfo;
+  }
+
+  public ReincarnationInfo getReincarnationInfo()
+    throws IOException
+  {
+    ReincarnationInfo incInfo = new ReincarnationInfo();
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE
+              .compute_device_get_reincarnation_info(compute_device, incInfo);
+
+    if (ret < 0) {
+      throw new IOException("compute_device_get_reincarnation_info() failed.");
+    }
+
+    incInfo.read();
+
+    return incInfo;
+  }
+
+  public byte[] getReincarnationKeyDerivationInfo()
+    throws IOException
+  {
+    ManufacturingInfo mfgInfo = getManufacturingInfo();
+    ReincarnationInfo incInfo = getReincarnationInfo();
+    byte[] derivationInfo = new byte[mfgInfo.size() + incInfo.size()];
+
+    System.arraycopy(mfgInfo.getPointer().getByteArray(0, mfgInfo.size()),
+                     0,
+                     derivationInfo,
+                     0,
+                     mfgInfo.size());
+    System.arraycopy(incInfo.getPointer().getByteArray(0, incInfo.size()),
+                     0,
+                     derivationInfo,
+                     mfgInfo.size(),
+                     incInfo.size());
+
+    return derivationInfo;
   }
 
   public void close()

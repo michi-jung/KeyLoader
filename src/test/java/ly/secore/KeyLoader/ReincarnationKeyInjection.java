@@ -13,7 +13,7 @@ class ReincarnationKeyInjection {
          ComputeDevice computeDevice = new ComputeDevice(args[0]))
     {
       BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
-      KeyLoader.KeyAgreementParameters params;
+      KeyLoader.SetIncKeyContext ctx;
 
       computeDevice.openServiceSession();
 
@@ -27,13 +27,12 @@ class ReincarnationKeyInjection {
 
       computeDevice.openServiceSession();
 
-      params = keyLoader.keyAgreementStep1();
-      params = computeDevice.setIncKeyStep1(params);
-
-      System.out.println(HexFormat.of().formatHex(params.initiatorRandom));
-      System.out.println(HexFormat.of().formatHex(params.initiatorAuthPubKey));
-      System.out.println(HexFormat.of().formatHex(params.responderRandom));
-      System.out.println(HexFormat.of().formatHex(params.responderEphPubKey));
+      ctx = keyLoader.setIncKeyStep1(computeDevice.getReincarnationKeyDerivationInfo());
+      computeDevice.setIncKeyStep1(ctx);
+      keyLoader.setIncKeyStep2(ctx);
+      computeDevice.setIncKeyStep2(ctx);
+      keyLoader.setIncKeyStep3(ctx);
+      computeDevice.setIncKeyStep3(ctx);
 
       computeDevice.closeServiceSession();
     }
