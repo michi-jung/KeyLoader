@@ -1,15 +1,21 @@
+/*
+ * ly.secore.compute.KeyLoader
+ * Load keys from an HSM to devices powered by compute secore.ly Firmware
+ *
+ * Copyright (c) 2025 secore.ly GmbH
+ * All rights reserved.
+ *
+ * This software is the confidential and proprietary information of secore.ly
+ * GmbH ("Confidential Information").  You shall not disclose such Confidential
+ * Information and shall use it only in accordance with the terms of the
+ * license agreement you entered into with secore.ly GmbH or one of its
+ * authorized partners.
+ */
+
 package ly.secore.compute;
-
-import ly.secore.compute.ComputeDevice;
-
-import java.io.IOException;
-import java.util.stream.Stream;
-import java.util.Arrays;
-import java.util.HexFormat;
 
 import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
-
 import iaik.pkcs.pkcs11.wrapper.CK_ATTRIBUTE;
 import iaik.pkcs.pkcs11.wrapper.CK_ECDH1_DERIVE_PARAMS;
 import iaik.pkcs.pkcs11.wrapper.CK_KEY_DERIVATION_STRING_DATA;
@@ -18,11 +24,13 @@ import iaik.pkcs.pkcs11.wrapper.PKCS11;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Connector;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Constants;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Exception;
+import java.io.IOException;
+import java.util.stream.Stream;
+import java.util.Arrays;
+import java.util.HexFormat;
+import ly.secore.compute.ComputeDevice;
 
 public class KeyLoader implements AutoCloseable {
-  protected PKCS11 p11;
-  long hSession;
-
   public final static int KEY_AGREEMENT_RANDOM_LEN       = 32;
   public final static int SECP256R1_PUBLIC_KEY_INFO_LEN  = 91;
   public final static int SECP256R1_PUBLIC_KEY_LEN       = 67;
@@ -33,8 +41,6 @@ public class KeyLoader implements AutoCloseable {
   public final static long CKM_X9_143_KEY_WRAP = 0x85EC0001L;
 
   public static class SetIncKeyContext {
-    public byte[] incKeyDerivationInfo;
-
     public byte[] initiatorRandom;
     public byte[] initiatorAuthPubKey;
     public byte[] responderRandom;
@@ -45,14 +51,10 @@ public class KeyLoader implements AutoCloseable {
     public byte[] initiatorCMAC;
     public byte[] initiatorKeyblock;
 
+    public byte[] incKeyDerivationInfo;
     public long hInitiatorAuthPrivKey;
     public long hInitiatorEphPrivKey;
   };
-
-  protected final static byte[] SUBJECT_PUBLIC_KEY_INFO_PREFIX =
-      HexFormat.of().parseHex("3059301306072A8648CE3D020106082A8648CE3D030107034200");
-
-  protected final static byte[] OID_SECP256R1 = HexFormat.of().parseHex("06082A8648CE3D030107");
 
   public KeyLoader(String pkcs11ModuleFilename, long slotID)
       throws IOException, PKCS11Exception
@@ -517,4 +519,11 @@ public class KeyLoader implements AutoCloseable {
       e.printStackTrace(System.out);
     }
   }
+
+  protected PKCS11 p11;
+  protected long hSession;
+
+  protected final static byte[] SUBJECT_PUBLIC_KEY_INFO_PREFIX =
+      HexFormat.of().parseHex("3059301306072A8648CE3D020106082A8648CE3D030107034200");
+  protected final static byte[] OID_SECP256R1 = HexFormat.of().parseHex("06082A8648CE3D030107");
 };

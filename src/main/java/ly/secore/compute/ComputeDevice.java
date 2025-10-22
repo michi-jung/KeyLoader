@@ -1,13 +1,18 @@
+/*
+ * ly.secore.compute.ComputeDevice
+ * Management of devices powered by compute secore.ly Firmware
+ *
+ * Copyright (c) 2025 secore.ly GmbH
+ * All rights reserved.
+ *
+ * This software is the confidential and proprietary information of secore.ly
+ * GmbH ("Confidential Information").  You shall not disclose such Confidential
+ * Information and shall use it only in accordance with the terms of the
+ * license agreement you entered into with secore.ly GmbH or one of its
+ * authorized partners.
+ */
+
 package ly.secore.compute;
-
-import ly.secore.compute.KeyLoader;
-
-import java.io.InputStream;
-import java.io.IOException;
-
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 import com.sun.jna.Callback;
 import com.sun.jna.Library;
@@ -15,8 +20,14 @@ import com.sun.jna.Memory;
 import com.sun.jna.Native;
 import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
-import com.sun.jna.Structure;
 import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.Structure;
+import java.io.InputStream;
+import java.io.IOException;
+import ly.secore.compute.KeyLoader;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 public class ComputeDevice implements AutoCloseable {
 
@@ -85,124 +96,6 @@ public class ComputeDevice implements AutoCloseable {
     public static class ByValue extends ReincarnationInfo implements Structure.ByValue {}
   }
 
-  private static final Logger LOGGER = LogManager.getLogger();
-
-  protected interface CLibrary extends Library {
-    CLibrary INSTANCE = (CLibrary)Native.load("c", CLibrary.class);
-
-    int vsnprintf(byte[] buffer, int size, String format, Pointer va_list);
-  }
-
-  protected interface ComputeDeviceProxyLibrary extends Library {
-    ComputeDeviceProxyLibrary INSTANCE =
-        (ComputeDeviceProxyLibrary)Native.load("compute-device-proxy",
-                                               ComputeDeviceProxyLibrary.class);
-
-    interface compute_device_reset_cb_t extends Callback {
-      int invoke(Pointer app_data);
-    }
-
-    interface compute_device_vlog_cb_t extends Callback {
-      void invoke(Pointer app_data, int priority, String fmt, Pointer va_args);
-    }
-
-    interface compute_device_get_image_chunk_cb_t extends Callback {
-      int invoke(Pointer app_data, Pointer buffer, int buffer_size);
-    }
-
-    Pointer compute_device_proxy_tcp_new(String  host,
-                                         String  service,
-                                         compute_device_vlog_cb_t vlog,
-                                         Pointer app_data);
-
-    Pointer compute_device_proxy_tty_new(String                    dev_tty_fn,
-                                         compute_device_vlog_cb_t  vlog,
-                                         compute_device_reset_cb_t reset,
-                                         Pointer                   app_data);
-
-    void compute_device_delete(Pointer compute_device);
-
-    int compute_device_proxy_tty_reset_cb(Pointer compute_device);
-
-    int compute_device_open_service_session(Pointer compute_device);
-
-    int compute_device_close_service_session(Pointer compute_device);
-
-    int compute_device_request_deferred_reboot(Pointer compute_device);
-
-    int compute_device_factory_flash(Pointer                             compute_device,
-                                     compute_device_get_image_chunk_cb_t get_image_chunk);
-
-    int compute_device_get_mfg_reset_secret_derivation_input(
-            Pointer         compute_device,
-            IntByReference  mfg_reset_secret_derivation_input);
-
-    int compute_device_lock(Pointer                  compute_device,
-                            ManufacturingResetSecret mfg_reset);
-
-    int compute_device_set_inc_key_step_1(
-            Pointer compute_device,
-            byte[] initiator_random,
-            byte[] initiator_auth_pub_key,
-            Memory responder_random,
-            Memory responder_eph_pub_key);
-
-    int compute_device_set_inc_key_step_2(
-            Pointer compute_device,
-            byte[] initiator_eph_pub_key,
-            byte[] initiator_signature,
-            Memory responder_cmac);
-
-    int compute_device_set_inc_key_step_3(
-            Pointer compute_device,
-            byte[] initiator_cmac,
-            byte[] initiator_keyblock);
-
-    int compute_device_get_manufacturing_info(
-            Pointer           compute_device,
-            ManufacturingInfo mfg_info);
-
-    int compute_device_get_reincarnation_info(
-            Pointer           compute_device,
-            ReincarnationInfo inc_info);
-  }
-
-  protected Pointer compute_device;
-
-  protected final ComputeDeviceProxyLibrary.compute_device_vlog_cb_t vlog_cb =
-      new ComputeDeviceProxyLibrary.compute_device_vlog_cb_t() {
-        public void invoke(Pointer app_data, int priority, String fmt, Pointer va_args) {
-          byte[] buffer = new byte[2048];
-          Level level;
-
-          switch (priority) {
-            case 0:
-            case 1:
-            case 2:
-              level = Level.FATAL;
-              break;
-            case 3:
-              level = Level.ERROR;
-              break;
-            case 4:
-              level = Level.WARN;
-              break;
-            case 5:
-            case 6:
-              level = Level.INFO;
-              break;
-            case 7:
-            default:
-              level = Level.DEBUG;
-              break;
-          }
-
-          CLibrary.INSTANCE.vsnprintf(buffer, buffer.length, fmt, va_args);
-
-          LOGGER.atLevel(level).log(new String(buffer));
-        }
-      };
-
   public ComputeDevice(String host, String service) throws IOException {
     compute_device =
         ComputeDeviceProxyLibrary.INSTANCE.compute_device_proxy_tcp_new(
@@ -211,10 +104,9 @@ public class ComputeDevice implements AutoCloseable {
             vlog_cb,
             null);
 
-    if (compute_device == null)
-      {
+    if (compute_device == null) {
         throw new IOException("compute_device_proxy_tcp_new() failed.");
-      }
+    }
   }
 
   public ComputeDevice(String dev_tty_fn) throws IOException {
@@ -237,26 +129,44 @@ public class ComputeDevice implements AutoCloseable {
             reset_cb,
             null);
 
-    if (compute_device == null)
-      {
-        throw new IOException("compute_device_proxy_tty_new() failed.");
-      }
+    if (compute_device == null) {
+      throw new IOException("compute_device_proxy_tty_new() failed.");
+    }
   }
 
-  public int openServiceSession() {
-    return ComputeDeviceProxyLibrary.INSTANCE.compute_device_open_service_session(compute_device);
+  public void openServiceSession() throws IOException {
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_open_service_session(compute_device);
+
+    if (ret < 0) {
+      throw new IOException("compute_device_open_service_session() failed.");
+    }
   }
 
-  public int closeServiceSession() {
-    return ComputeDeviceProxyLibrary.INSTANCE.compute_device_close_service_session(compute_device);
+  public void closeServiceSession() throws IOException {
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_close_service_session(compute_device);
+
+    if (ret < 0) {
+      throw new IOException("compute_device_close_service_session() failed.");
+    }
   }
 
-  public int requestDeferredReboot() {
-    return ComputeDeviceProxyLibrary.INSTANCE.compute_device_request_deferred_reboot(
-               compute_device);
+  public void requestDeferredReboot() throws IOException {
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_request_deferred_reboot(
+              compute_device);
+
+    if (ret < 0) {
+      throw new IOException("compute_device_request_deferred_reboot() failed.");
+    }
   }
 
-  public int factoryFlash(InputStream initialFirmwareImage) {
+  public void factoryFlash(InputStream initialFirmwareImage) throws IOException {
+    int ret;
     ComputeDeviceProxyLibrary.compute_device_get_image_chunk_cb_t get_chunk_cb =
         new ComputeDeviceProxyLibrary.compute_device_get_image_chunk_cb_t() {
           protected InputStream image = initialFirmwareImage;
@@ -287,8 +197,11 @@ public class ComputeDevice implements AutoCloseable {
           }
         };
 
-    return ComputeDeviceProxyLibrary.INSTANCE.compute_device_factory_flash(compute_device,
-                                                                           get_chunk_cb);
+    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_factory_flash(compute_device,
+                                                                          get_chunk_cb);
+    if (ret < 0) {
+      throw new IOException("compute_device_factory_flash() failed.");
+    }
   }
 
   public int getMfgResetSecretDerivationInput() throws IOException {
@@ -312,10 +225,9 @@ public class ComputeDevice implements AutoCloseable {
     mfgReset.write();
     ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_lock(compute_device, mfgReset);
 
-    if (ret < 0)
-      {
-        throw new IOException("compute_device_lock() failed.");
-      }
+    if (ret < 0) {
+      throw new IOException("compute_device_lock() failed.");
+    }
   }
 
   public void setIncKeyStep1(KeyLoader.SetIncKeyContext ctx)
@@ -331,10 +243,9 @@ public class ComputeDevice implements AutoCloseable {
                                                  ctx.initiatorAuthPubKey,
                                                  responderRandom,
                                                  responderEphPubKey);
-    if (ret < 0)
-      {
-        throw new IOException("compute_device_set_inc_key_step_1() failed.");
-      }
+    if (ret < 0) {
+      throw new IOException("compute_device_set_inc_key_step_1() failed.");
+    }
 
     ctx.responderRandom = responderRandom.getByteArray(0, (int)responderRandom.size());
     ctx.responderEphPubKey = responderEphPubKey.getByteArray(0, (int)responderEphPubKey.size());
@@ -434,6 +345,127 @@ public class ComputeDevice implements AutoCloseable {
 
   public void close()
   {
-    ComputeDeviceProxyLibrary.INSTANCE.compute_device_delete(compute_device);
+    if (compute_device != null) {
+      ComputeDeviceProxyLibrary.INSTANCE.compute_device_delete(compute_device);
+      compute_device = null;
+    }
   }
+
+  private static final Logger LOGGER = LogManager.getLogger();
+
+  private interface CLibrary extends Library {
+    CLibrary INSTANCE = (CLibrary)Native.load("c", CLibrary.class);
+
+    int vsnprintf(byte[] buffer, int size, String format, Pointer va_list);
+  }
+
+  private interface ComputeDeviceProxyLibrary extends Library {
+    ComputeDeviceProxyLibrary INSTANCE =
+        (ComputeDeviceProxyLibrary)Native.load("compute-device-proxy",
+                                               ComputeDeviceProxyLibrary.class);
+
+    interface compute_device_reset_cb_t extends Callback {
+      int invoke(Pointer app_data);
+    }
+
+    interface compute_device_vlog_cb_t extends Callback {
+      void invoke(Pointer app_data, int priority, String fmt, Pointer va_args);
+    }
+
+    interface compute_device_get_image_chunk_cb_t extends Callback {
+      int invoke(Pointer app_data, Pointer buffer, int buffer_size);
+    }
+
+    Pointer compute_device_proxy_tcp_new(String  host,
+                                         String  service,
+                                         compute_device_vlog_cb_t vlog,
+                                         Pointer app_data);
+
+    Pointer compute_device_proxy_tty_new(String                    dev_tty_fn,
+                                         compute_device_vlog_cb_t  vlog,
+                                         compute_device_reset_cb_t reset,
+                                         Pointer                   app_data);
+
+    void compute_device_delete(Pointer compute_device);
+
+    int compute_device_proxy_tty_reset_cb(Pointer compute_device);
+
+    int compute_device_open_service_session(Pointer compute_device);
+
+    int compute_device_close_service_session(Pointer compute_device);
+
+    int compute_device_request_deferred_reboot(Pointer compute_device);
+
+    int compute_device_factory_flash(Pointer                             compute_device,
+                                     compute_device_get_image_chunk_cb_t get_image_chunk);
+
+    int compute_device_get_mfg_reset_secret_derivation_input(
+            Pointer         compute_device,
+            IntByReference  mfg_reset_secret_derivation_input);
+
+    int compute_device_lock(Pointer                  compute_device,
+                            ManufacturingResetSecret mfg_reset);
+
+    int compute_device_set_inc_key_step_1(
+            Pointer compute_device,
+            byte[] initiator_random,
+            byte[] initiator_auth_pub_key,
+            Memory responder_random,
+            Memory responder_eph_pub_key);
+
+    int compute_device_set_inc_key_step_2(
+            Pointer compute_device,
+            byte[] initiator_eph_pub_key,
+            byte[] initiator_signature,
+            Memory responder_cmac);
+
+    int compute_device_set_inc_key_step_3(
+            Pointer compute_device,
+            byte[] initiator_cmac,
+            byte[] initiator_keyblock);
+
+    int compute_device_get_manufacturing_info(
+            Pointer           compute_device,
+            ManufacturingInfo mfg_info);
+
+    int compute_device_get_reincarnation_info(
+            Pointer           compute_device,
+            ReincarnationInfo inc_info);
+  }
+
+  private Pointer compute_device;
+
+  private final ComputeDeviceProxyLibrary.compute_device_vlog_cb_t vlog_cb =
+      new ComputeDeviceProxyLibrary.compute_device_vlog_cb_t() {
+        public void invoke(Pointer app_data, int priority, String fmt, Pointer va_args) {
+          byte[] buffer = new byte[2048];
+          Level level;
+
+          switch (priority) {
+            case 0:
+            case 1:
+            case 2:
+              level = Level.FATAL;
+              break;
+            case 3:
+              level = Level.ERROR;
+              break;
+            case 4:
+              level = Level.WARN;
+              break;
+            case 5:
+            case 6:
+              level = Level.INFO;
+              break;
+            case 7:
+            default:
+              level = Level.DEBUG;
+              break;
+          }
+
+          CLibrary.INSTANCE.vsnprintf(buffer, buffer.length, fmt, va_args);
+
+          LOGGER.atLevel(level).log(new String(buffer));
+        }
+      };
 }
