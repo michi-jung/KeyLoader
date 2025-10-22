@@ -247,85 +247,7 @@ public class KeyLoader implements AutoCloseable {
     }
   }
 
-  public long getReincarnationMasterKey()
-      throws IOException, PKCS11Exception
-  {
-    CK_ATTRIBUTE[] reincarnationMasterKeyTemplate = new CK_ATTRIBUTE[3];
-    long[] hKeys;
-
-    reincarnationMasterKeyTemplate[0] = new CK_ATTRIBUTE();
-    reincarnationMasterKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
-    reincarnationMasterKeyTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
-
-    reincarnationMasterKeyTemplate[1] = new CK_ATTRIBUTE();
-    reincarnationMasterKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
-    reincarnationMasterKeyTemplate[1].pValue = PKCS11Constants.CKK_AES;
-
-    reincarnationMasterKeyTemplate[2] = new CK_ATTRIBUTE();
-    reincarnationMasterKeyTemplate[2].type = PKCS11Constants.CKA_LABEL;
-    reincarnationMasterKeyTemplate[2].pValue = new String("000DEB06").toCharArray();
-
-    p11.C_FindObjectsInit(hSession, reincarnationMasterKeyTemplate, true);
-    hKeys = p11.C_FindObjects(hSession, 1);
-    p11.C_FindObjectsFinal(hSession);
-
-    if (hKeys.length != 1) {
-      throw new IOException("Did not find Reincarnation Master Key.");
-    }
-
-    return hKeys[0];
-  }
-
-  public long deriveReincarnationKey(byte[] derivationInfo)
-      throws IOException, PKCS11Exception
-  {
-    CK_MECHANISM ckm_sha256 = new CK_MECHANISM();
-    CK_MECHANISM ckm_aes_ecb_encrypt_data = new CK_MECHANISM();
-    CK_ATTRIBUTE[] reincarnationKeyTemplate = new CK_ATTRIBUTE[6];
-    CK_KEY_DERIVATION_STRING_DATA derivationData = new CK_KEY_DERIVATION_STRING_DATA();
-    long hReincarnationMasterKey = getReincarnationMasterKey();
-
-    ckm_sha256.mechanism = PKCS11Constants.CKM_SHA256;
-
-    p11.C_DigestInit(hSession, ckm_sha256, true);
-    p11.C_DigestUpdate(hSession, derivationInfo);
-    derivationData.pData = p11.C_DigestFinal(hSession);
-
-    reincarnationKeyTemplate[0] = new CK_ATTRIBUTE();
-    reincarnationKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
-    reincarnationKeyTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
-
-    reincarnationKeyTemplate[1] = new CK_ATTRIBUTE();
-    reincarnationKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
-    reincarnationKeyTemplate[1].pValue = PKCS11Constants.CKK_AES;
-
-    reincarnationKeyTemplate[2] = new CK_ATTRIBUTE();
-    reincarnationKeyTemplate[2].type = PKCS11Constants.CKA_WRAP;
-    reincarnationKeyTemplate[2].pValue = true;
-
-    reincarnationKeyTemplate[3] = new CK_ATTRIBUTE();
-    reincarnationKeyTemplate[3].type = PKCS11Constants.CKA_UNWRAP;
-    reincarnationKeyTemplate[3].pValue = true;
-
-    reincarnationKeyTemplate[4] = new CK_ATTRIBUTE();
-    reincarnationKeyTemplate[4].type = PKCS11Constants.CKA_LABEL;
-    reincarnationKeyTemplate[4].pValue = new String("X9_143_MASTER_KBPK").toCharArray();
-
-    reincarnationKeyTemplate[5] = new CK_ATTRIBUTE();
-    reincarnationKeyTemplate[5].type = CKA_X9_143_KBH;
-    reincarnationKeyTemplate[5].pValue = new String("D0016K1AD00N0000").toCharArray();
-
-    ckm_aes_ecb_encrypt_data.mechanism  = PKCS11Constants.CKM_AES_ECB_ENCRYPT_DATA;
-    ckm_aes_ecb_encrypt_data.pParameter = derivationData;
-
-    return p11.C_DeriveKey(hSession,
-                           ckm_aes_ecb_encrypt_data,
-                           hReincarnationMasterKey,
-                           reincarnationKeyTemplate,
-                           true);
-  }
-
-  public void setIncKeyStep3(SetIncKeyContext ctx)
+ public void setIncKeyStep3(SetIncKeyContext ctx)
       throws IOException, PKCS11Exception
   {
     CK_ECDH1_DERIVE_PARAMS ecdh1_derive_params = new CK_ECDH1_DERIVE_PARAMS();
@@ -509,6 +431,53 @@ public class KeyLoader implements AutoCloseable {
     p11.C_DestroyObject(hSession, hMasterSecret);
   }
 
+  public byte[] getAppKeyKeyblock(byte[] reincarnationKeyDerivationInput)
+      throws IOException, PKCS11Exception
+  {
+    CK_ATTRIBUTE[] appKeySearchTemplate = new CK_ATTRIBUTE[3];
+    CK_MECHANISM ckm_x9_143_key_wrap = new CK_MECHANISM();
+    long hReincarnationKey;
+    long hApplicationSignKey;
+    long[] hKeys;
+    byte[] keyBlock;
+
+    appKeySearchTemplate[0] = new CK_ATTRIBUTE();
+    appKeySearchTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    appKeySearchTemplate[0].pValue = PKCS11Constants.CKO_PRIVATE_KEY;
+
+    appKeySearchTemplate[1] = new CK_ATTRIBUTE();
+    appKeySearchTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    appKeySearchTemplate[1].pValue = PKCS11Constants.CKK_RSA;
+
+    appKeySearchTemplate[2] = new CK_ATTRIBUTE();
+    appKeySearchTemplate[2].type = PKCS11Constants.CKA_LABEL;
+    appKeySearchTemplate[2].pValue = new String("APPLICATION_SIGN").toCharArray();
+
+    p11.C_FindObjectsInit(hSession, appKeySearchTemplate, true);
+    hKeys = p11.C_FindObjects(hSession, 2);
+    p11.C_FindObjectsFinal(hSession);
+
+    if (hKeys.length != 1) {
+      throw new IOException("APPLICATION_SIGN key not found.");
+    }
+
+    hApplicationSignKey = hKeys[0];
+    hReincarnationKey = deriveReincarnationKey(reincarnationKeyDerivationInput);
+
+    ckm_x9_143_key_wrap.mechanism = CKM_X9_143_KEY_WRAP;
+    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RV00N0000").toCharArray();
+
+    keyBlock = p11.C_WrapKey(hSession,
+                             ckm_x9_143_key_wrap,
+                             hReincarnationKey,
+                             hApplicationSignKey,
+                             true);
+
+    p11.C_DestroyObject(hSession, hReincarnationKey);
+
+    return keyBlock;
+  }
+
   public void close() {
     try {
       p11.C_CloseSession(hSession);
@@ -518,6 +487,84 @@ public class KeyLoader implements AutoCloseable {
     {
       e.printStackTrace(System.out);
     }
+  }
+
+  protected long deriveReincarnationKey(byte[] derivationInfo)
+      throws IOException, PKCS11Exception
+  {
+    CK_MECHANISM ckm_sha256 = new CK_MECHANISM();
+    CK_MECHANISM ckm_aes_ecb_encrypt_data = new CK_MECHANISM();
+    CK_ATTRIBUTE[] reincarnationKeyTemplate = new CK_ATTRIBUTE[6];
+    CK_KEY_DERIVATION_STRING_DATA derivationData = new CK_KEY_DERIVATION_STRING_DATA();
+    long hReincarnationMasterKey = getReincarnationMasterKey();
+
+    ckm_sha256.mechanism = PKCS11Constants.CKM_SHA256;
+
+    p11.C_DigestInit(hSession, ckm_sha256, true);
+    p11.C_DigestUpdate(hSession, derivationInfo);
+    derivationData.pData = p11.C_DigestFinal(hSession);
+
+    reincarnationKeyTemplate[0] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    reincarnationKeyTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
+
+    reincarnationKeyTemplate[1] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    reincarnationKeyTemplate[1].pValue = PKCS11Constants.CKK_AES;
+
+    reincarnationKeyTemplate[2] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[2].type = PKCS11Constants.CKA_WRAP;
+    reincarnationKeyTemplate[2].pValue = true;
+
+    reincarnationKeyTemplate[3] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[3].type = PKCS11Constants.CKA_UNWRAP;
+    reincarnationKeyTemplate[3].pValue = true;
+
+    reincarnationKeyTemplate[4] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[4].type = PKCS11Constants.CKA_LABEL;
+    reincarnationKeyTemplate[4].pValue = new String("X9_143_MASTER_KBPK").toCharArray();
+
+    reincarnationKeyTemplate[5] = new CK_ATTRIBUTE();
+    reincarnationKeyTemplate[5].type = CKA_X9_143_KBH;
+    reincarnationKeyTemplate[5].pValue = new String("D0016K1AD00N0000").toCharArray();
+
+    ckm_aes_ecb_encrypt_data.mechanism  = PKCS11Constants.CKM_AES_ECB_ENCRYPT_DATA;
+    ckm_aes_ecb_encrypt_data.pParameter = derivationData;
+
+    return p11.C_DeriveKey(hSession,
+                           ckm_aes_ecb_encrypt_data,
+                           hReincarnationMasterKey,
+                           reincarnationKeyTemplate,
+                           true);
+  }
+
+  protected long getReincarnationMasterKey()
+      throws IOException, PKCS11Exception
+  {
+    CK_ATTRIBUTE[] reincarnationMasterKeyTemplate = new CK_ATTRIBUTE[3];
+    long[] hKeys;
+
+    reincarnationMasterKeyTemplate[0] = new CK_ATTRIBUTE();
+    reincarnationMasterKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    reincarnationMasterKeyTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
+
+    reincarnationMasterKeyTemplate[1] = new CK_ATTRIBUTE();
+    reincarnationMasterKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    reincarnationMasterKeyTemplate[1].pValue = PKCS11Constants.CKK_AES;
+
+    reincarnationMasterKeyTemplate[2] = new CK_ATTRIBUTE();
+    reincarnationMasterKeyTemplate[2].type = PKCS11Constants.CKA_LABEL;
+    reincarnationMasterKeyTemplate[2].pValue = new String("000DEB06").toCharArray();
+
+    p11.C_FindObjectsInit(hSession, reincarnationMasterKeyTemplate, true);
+    hKeys = p11.C_FindObjects(hSession, 1);
+    p11.C_FindObjectsFinal(hSession);
+
+    if (hKeys.length != 1) {
+      throw new IOException("Did not find Reincarnation Master Key.");
+    }
+
+    return hKeys[0];
   }
 
   protected PKCS11 p11;

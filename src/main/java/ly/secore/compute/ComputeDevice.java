@@ -22,8 +22,14 @@ import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.Structure;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.ZoneOffset;
+import java.util.UUID;
 import ly.secore.compute.KeyLoader;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
@@ -62,11 +68,116 @@ public class ComputeDevice implements AutoCloseable {
     public byte ecl;
     public byte[] mac_address = new byte[6];
 
+    public static final UUID DDM_885_DEVICE_CLASS = UUID.fromString("7b345c53-df4c-5655-b7d3-c78b7bca457f");
+
+    public static final byte DEVICE_TYPE_DDM_885_2_020272_06A = 0x00;
+    public static final byte DEVICE_TYPE_DDM_885_2_020296_06A = 0x01;
+    public static final byte DEVICE_TYPE_DDM_885_2_020296_06B = 0x02;
+    public static final byte DEVICE_TYPE_DDM_885_2_020326_06A = 0x03;
+    public static final byte DEVICE_TYPE_DDM_885_2_020326_06B = 0x04;
+    public static final byte DEVICE_TYPE_DDM_885_2_020326_06C = 0x05;
+    public static final byte DEVICE_TYPE_DDM_885_2_020326_06D = 0x06;
+    public static final byte DEVICE_TYPE_DDM_885_2_020363_06B = 0x10;
+
     public ManufacturingInfo() {}
 
     public ManufacturingInfo(Pointer p) {
       super(p);
       read();
+    }
+
+    public UUID getDeviceClassUUID() {
+      ByteBuffer bb = ByteBuffer.wrap(device_class_uuid);
+      long high = bb.getLong();
+      long low = bb.getLong();
+      return new UUID(high, low);
+    }
+
+    public String getDeviceClassName() {
+      UUID deviceClass = getDeviceClassUUID();
+
+      if (deviceClass.equals(DDM_885_DEVICE_CLASS))
+      {
+        return new String("DDM-885");
+      }
+
+      return new String("Unknown Device Class");
+    }
+
+    public void setDeviceClass(UUID deviceClass) {
+      ByteBuffer bb = ByteBuffer.allocate(16);
+      bb.putLong(deviceClass.getMostSignificantBits());
+      bb.putLong(deviceClass.getLeastSignificantBits());
+      device_class_uuid = bb.array();
+    }
+
+    public byte getDeviceType() {
+      return device_type_id;
+    }
+
+    public void setDeviceType(byte deviceType) {
+      device_type_id = deviceType;
+    }
+
+    public String getDeviceTypeName() {
+      UUID deviceClass = getDeviceClassUUID();
+
+      if (deviceClass.equals(DDM_885_DEVICE_CLASS)) {
+        switch (device_type_id) {
+          case DEVICE_TYPE_DDM_885_2_020272_06A:
+            return new String("2-020272-06a");
+          case DEVICE_TYPE_DDM_885_2_020296_06A:
+            return new String("2-020296-06a");
+          case DEVICE_TYPE_DDM_885_2_020296_06B:
+            return new String("2-020296-06b");
+          case DEVICE_TYPE_DDM_885_2_020326_06A:
+            return new String("DDM 885-R Rev. A");
+          case DEVICE_TYPE_DDM_885_2_020326_06B:
+            return new String("DDM 885-R Rev. B");
+          case DEVICE_TYPE_DDM_885_2_020326_06C:
+            return new String("DDM 885-R Rev. C");
+          case DEVICE_TYPE_DDM_885_2_020326_06D:
+            return new String("DDM 885-R Rev. D");
+          case DEVICE_TYPE_DDM_885_2_020363_06B:
+            return new String("DDM 885-H Rev. B");
+          default:
+            return new String("Unknown Device Type");
+        }
+      }
+
+      return new String("Unknown Device Type");
+    }
+
+    public byte getEngineeringChangeLevel() {
+      return ecl;
+    }
+
+    public void setEngineeringChangeLevel(byte engineeringChangeLevel) {
+      ecl = engineeringChangeLevel;
+    }
+
+    public int getSerialNumber() {
+      return serial_number;
+    }
+
+    public void setSerialNumber(int serialNumber) {
+      serial_number = serialNumber;
+    }
+
+    public byte[] getMACAddress() {
+      return mac_address;
+    }
+
+    public void setMACAddress(byte[] macAddress) {
+      mac_address = macAddress;
+    }
+
+    public ZonedDateTime getTimeOfProduction() {
+      return Instant.ofEpochSecond(time_of_production).atZone(ZoneOffset.UTC);
+    }
+
+    public void setTimeOfProduction(ZonedDateTime timeOfProduction) {
+      time_of_production = (int)timeOfProduction.toEpochSecond();
     }
 
     public static class ByReference extends ManufacturingInfo implements Structure.ByReference {}
@@ -167,41 +278,19 @@ public class ComputeDevice implements AutoCloseable {
 
   public void factoryFlash(InputStream initialFirmwareImage) throws IOException {
     int ret;
-    ComputeDeviceProxyLibrary.compute_device_get_image_chunk_cb_t get_chunk_cb =
-        new ComputeDeviceProxyLibrary.compute_device_get_image_chunk_cb_t() {
-          protected InputStream image = initialFirmwareImage;
 
-          public int invoke(Pointer app_data, Pointer buffer, int buffer_size) {
-            int bytesRead = -1;
+    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_factory_flash(
+              compute_device,
+              createGetImageChunkCallback(initialFirmwareImage));
 
-            try {
-              byte[] buf = new byte[buffer_size];
-
-              bytesRead = image.read(buf);
-
-              if (bytesRead > 0)
-                {
-                  buffer.getByteBuffer(0, bytesRead).put(buf, 0, bytesRead);
-                }
-
-              if (bytesRead == -1)
-                {
-                  bytesRead = 0;
-                }
-            }
-            catch (IOException e) {
-              bytesRead = -1;
-            }
-
-            return bytesRead;
-          }
-        };
-
-    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_factory_flash(compute_device,
-                                                                          get_chunk_cb);
     if (ret < 0) {
       throw new IOException("compute_device_factory_flash() failed.");
     }
+  }
+
+  public void applicationUpdate(InputStream applicationImage) throws IOException {
+    upload(applicationImage, IMAGE_TYPE_APP0_UPDATE, null);
+    requestDeferredReboot();
   }
 
   public int getMfgResetSecretDerivationInput() throws IOException {
@@ -227,6 +316,20 @@ public class ComputeDevice implements AutoCloseable {
 
     if (ret < 0) {
       throw new IOException("compute_device_lock() failed.");
+    }
+  }
+
+  public void setAppKey(byte[] keyblock)
+    throws IOException
+  {
+    int ret;
+
+    upload(new ByteArrayInputStream(keyblock), IMAGE_TYPE_KEY_BLOCK, null);
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_set_app_key(compute_device);
+
+    if (ret < 0) {
+      throw new IOException("compute_device_set_app_key() failed.");
     }
   }
 
@@ -431,9 +534,111 @@ public class ComputeDevice implements AutoCloseable {
     int compute_device_get_reincarnation_info(
             Pointer           compute_device,
             ReincarnationInfo inc_info);
+
+    int compute_device_start_upload(
+            Pointer compute_device,
+            int     image_type,
+            String  name);
+
+    int compute_device_upload_chunk(
+            Pointer compute_device,
+            byte[]  chunk,
+            int     len);
+
+    int compute_device_finalize_upload(
+            Pointer compute_device);
+
+    int compute_device_set_app_key(
+            Pointer compute_device);
   }
 
   private Pointer compute_device;
+
+  private ComputeDeviceProxyLibrary.compute_device_get_image_chunk_cb_t
+              createGetImageChunkCallback(InputStream image)
+  {
+    return new ComputeDeviceProxyLibrary.compute_device_get_image_chunk_cb_t()
+    {
+      protected InputStream imageStream = image;
+
+      public int invoke(Pointer app_data, Pointer buffer, int buffer_size) {
+        int bytesRead = -1;
+        try {
+          byte[] buf = new byte[buffer_size];
+
+          bytesRead = image.read(buf);
+
+          if (bytesRead > 0)
+          {
+            buffer.getByteBuffer(0, bytesRead).put(buf, 0, bytesRead);
+          }
+
+          if (bytesRead == -1)
+          {
+            bytesRead = 0;
+          }
+        }
+        catch (IOException e) {
+          bytesRead = -1;
+        }
+
+        return bytesRead;
+      }
+    };
+  }
+
+  private static final int MAX_IMAGE_CHUNK_SIZE   = 192;
+  private static final int IMAGE_TYPE_FW_UPDATE   = 1;
+  private static final int IMAGE_TYPE_APP0_UPDATE = 2;
+  private static final int IMAGE_TYPE_DEVCFG      = 3;
+  private static final int IMAGE_TYPE_LOGS        = 4;
+  private static final int IMAGE_TYPE_FFDC        = 5;
+  private static final int IMAGE_TYPE_KEY_BLOCK   = 6;
+  private static final int IMAGE_TYPE_SHARED_FILE = 7;
+  private static final int IMAGE_TYPE_FILE_LIST   = 8;
+
+  private void upload(InputStream data, int imageType, String name)
+    throws IOException
+  {
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE
+              .compute_device_start_upload(compute_device, imageType, name);
+
+    if (ret != 0) {
+      throw new IOException("compute_device_start_upload() failed.");
+    }
+
+    try {
+      byte[] chunk = new byte[MAX_IMAGE_CHUNK_SIZE];
+      int size;
+
+      while (true)
+        {
+          size = data.read(chunk);
+
+          if (size <= 0)
+          {
+            break;
+          }
+
+          ret = ComputeDeviceProxyLibrary.INSTANCE
+                    .compute_device_upload_chunk(compute_device, chunk, size);
+
+          if (ret != 0) {
+            throw new IOException("compute_device_upload_chunk() failed.");
+          }
+        }
+    }
+    finally {
+      ret = ComputeDeviceProxyLibrary.INSTANCE
+                .compute_device_finalize_upload(compute_device);
+
+      if (ret != 0) {
+        throw new IOException("compute_device_finalize_upload() failed.");
+      }
+    }
+  }
 
   private final ComputeDeviceProxyLibrary.compute_device_vlog_cb_t vlog_cb =
       new ComputeDeviceProxyLibrary.compute_device_vlog_cb_t() {
