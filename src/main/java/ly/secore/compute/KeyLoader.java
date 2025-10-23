@@ -15,7 +15,6 @@
 package ly.secore.compute;
 
 import com.sun.jna.Memory;
-import com.sun.jna.Pointer;
 import iaik.pkcs.pkcs11.wrapper.CK_ATTRIBUTE;
 import iaik.pkcs.pkcs11.wrapper.CK_ECDH1_DERIVE_PARAMS;
 import iaik.pkcs.pkcs11.wrapper.CK_KEY_DERIVATION_STRING_DATA;
@@ -25,10 +24,8 @@ import iaik.pkcs.pkcs11.wrapper.PKCS11Connector;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Constants;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Exception;
 import java.io.IOException;
-import java.util.stream.Stream;
 import java.util.Arrays;
 import java.util.HexFormat;
-import ly.secore.compute.ComputeDevice;
 
 public class KeyLoader implements AutoCloseable {
   public final static int KEY_AGREEMENT_RANDOM_LEN       = 32;

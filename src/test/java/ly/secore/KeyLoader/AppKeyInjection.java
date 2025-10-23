@@ -2,9 +2,6 @@ package ly.secore.KeyLoader;
 
 import ly.secore.compute.ComputeDevice;
 import ly.secore.compute.KeyLoader;
-import java.io.FileInputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.HexFormat;
 
 class AppKeyInjection {
   public static void main(String args[]) {

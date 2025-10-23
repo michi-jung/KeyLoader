@@ -2,10 +2,8 @@ package ly.secore.KeyLoader;
 
 import ly.secore.compute.ComputeDevice;
 import ly.secore.compute.KeyLoader;
-import java.io.FileInputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.HexFormat;
 
 class ReincarnationKeyInjection {
   public static void main(String args[]) {

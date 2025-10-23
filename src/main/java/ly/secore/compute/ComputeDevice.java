@@ -18,7 +18,6 @@ import com.sun.jna.Callback;
 import com.sun.jna.Library;
 import com.sun.jna.Memory;
 import com.sun.jna.Native;
-import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.Structure;
@@ -30,7 +29,6 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
-import ly.secore.compute.KeyLoader;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -221,17 +219,14 @@ public class ComputeDevice implements AutoCloseable {
   }
 
   public ComputeDevice(String dev_tty_fn) throws IOException {
-     ComputeDevice owner = this;
 
-     ComputeDeviceProxyLibrary.compute_device_reset_cb_t reset_cb =
-        new ComputeDeviceProxyLibrary.compute_device_reset_cb_t() {
-          protected ComputeDevice self = owner;
-
-          public int invoke(Pointer app_data) {
-            return ComputeDeviceProxyLibrary.INSTANCE.compute_device_proxy_tty_reset_cb(
-                       self.compute_device);
-          }
-        };
+    ComputeDeviceProxyLibrary.compute_device_reset_cb_t reset_cb =
+      new ComputeDeviceProxyLibrary.compute_device_reset_cb_t() {
+        public int invoke(Pointer app_data) {
+          return ComputeDeviceProxyLibrary.INSTANCE
+                    .compute_device_proxy_tty_reset_cb(compute_device);
+        }
+      };
 
     compute_device =
         ComputeDeviceProxyLibrary.INSTANCE.compute_device_proxy_tty_new(
@@ -352,9 +347,6 @@ public class ComputeDevice implements AutoCloseable {
 
     ctx.responderRandom = responderRandom.getByteArray(0, (int)responderRandom.size());
     ctx.responderEphPubKey = responderEphPubKey.getByteArray(0, (int)responderEphPubKey.size());
-
-    responderRandom.disposeAll();
-    responderEphPubKey.disposeAll();
   }
 
   public void setIncKeyStep2(KeyLoader.SetIncKeyContext ctx)
@@ -559,8 +551,6 @@ public class ComputeDevice implements AutoCloseable {
   {
     return new ComputeDeviceProxyLibrary.compute_device_get_image_chunk_cb_t()
     {
-      protected InputStream imageStream = image;
-
       public int invoke(Pointer app_data, Pointer buffer, int buffer_size) {
         int bytesRead = -1;
         try {
@@ -588,14 +578,14 @@ public class ComputeDevice implements AutoCloseable {
   }
 
   private static final int MAX_IMAGE_CHUNK_SIZE   = 192;
-  private static final int IMAGE_TYPE_FW_UPDATE   = 1;
+  /* private static final int IMAGE_TYPE_FW_UPDATE   = 1;*/
   private static final int IMAGE_TYPE_APP0_UPDATE = 2;
-  private static final int IMAGE_TYPE_DEVCFG      = 3;
-  private static final int IMAGE_TYPE_LOGS        = 4;
-  private static final int IMAGE_TYPE_FFDC        = 5;
+  /* private static final int IMAGE_TYPE_DEVCFG      = 3;
+   * private static final int IMAGE_TYPE_LOGS        = 4;
+   * private static final int IMAGE_TYPE_FFDC        = 5; */
   private static final int IMAGE_TYPE_KEY_BLOCK   = 6;
-  private static final int IMAGE_TYPE_SHARED_FILE = 7;
-  private static final int IMAGE_TYPE_FILE_LIST   = 8;
+  /* private static final int IMAGE_TYPE_SHARED_FILE = 7;
+   * private static final int IMAGE_TYPE_FILE_LIST   = 8; */
 
   private void upload(InputStream data, int imageType, String name)
     throws IOException
