@@ -25,6 +25,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.ZoneOffset;
@@ -96,7 +97,7 @@ public class ComputeDevice implements AutoCloseable {
 
       if (deviceClass.equals(DDM_885_DEVICE_CLASS))
       {
-        return new String("DDM-885");
+        return new String("DDM 885");
       }
 
       return new String("Unknown Device Class");
@@ -182,6 +183,12 @@ public class ComputeDevice implements AutoCloseable {
     public static class ByValue extends ManufacturingInfo implements Structure.ByValue {}
   }
 
+  public static final int DEVICE_PERSONALITY_PCI_POI = 0;
+  public static final int DEVICE_PERSONALITY_PCI_HSM = 1;
+
+  public static final int OPERATING_MODE_DEVELOPMENT = 0;
+  public static final int OPERATING_MODE_PRODUCTION  = 1;
+
   @Structure.FieldOrder({
     "time_of_reincarnation",
     "device_personality",
@@ -201,8 +208,79 @@ public class ComputeDevice implements AutoCloseable {
       read();
     }
 
+    public ZonedDateTime getTimeOfReincarnation() {
+      return Instant.ofEpochSecond(time_of_reincarnation).atZone(ZoneOffset.UTC);
+    }
+
+    public void setTimeOfReincarnation(ZonedDateTime timeOfReincarnation) {
+      time_of_reincarnation = (int)timeOfReincarnation.toEpochSecond();
+    }
+
+    public int getDevicePersonality() {
+      return device_personality;
+    }
+
+    public String getDevicePersonalityName() {
+      switch (device_personality) {
+        case DEVICE_PERSONALITY_PCI_POI:
+          return new String("PCI POI");
+        case DEVICE_PERSONALITY_PCI_HSM:
+          return new String("PCI HSM");
+        default:
+          return new String("Unknown Device Personality");
+      }
+    }
+
+    public void setDevicePersonality(int devicePersonality) {
+      device_personality = devicePersonality;
+    }
+
+    public int getOperatingMode() {
+      return operating_mode;
+    }
+
+    public String getOperatingModeName() {
+      switch (operating_mode) {
+        case OPERATING_MODE_DEVELOPMENT:
+          return new String("Development");
+        case OPERATING_MODE_PRODUCTION:
+          return new String("Production");
+        default:
+          return new String("Unknown Operating Mode");
+      }
+    }
+
+    public void setOperatingMode(int operatingMode) {
+      operating_mode = operatingMode;
+    }
+
+    public int getMasterKeyId() {
+      if (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN) {
+        return master_key_id;
+      } else {
+        return Integer.reverseBytes(master_key_id);
+      }
+    }
+
+    public String getMasterKeyIdName() {
+      return String.format("%08X", getMasterKeyId());
+    }
+
+    public void setMasterKeyId(int masterKeyId) {
+      if (ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN) {
+        master_key_id = masterKeyId;
+      } else {
+        master_key_id = Integer.reverseBytes(masterKeyId);
+      }
+    }
+
     public static class ByReference extends ReincarnationInfo implements Structure.ByReference {}
     public static class ByValue extends ReincarnationInfo implements Structure.ByValue {}
+  }
+
+  public static class DDM885Info {
+    public String productKey;
+    public int orderId;
   }
 
   public ComputeDevice(String host, String service) throws IOException {
@@ -417,6 +495,27 @@ public class ComputeDevice implements AutoCloseable {
     return incInfo;
   }
 
+  public DDM885Info getDDM885Info()
+    throws IOException
+  {
+    DDM885Info ddm885Info = new DDM885Info();
+    Memory productKey = new Memory(ComputeDeviceProxyLibrary.DDM_885_PRODUCT_KEY_LEN);
+    IntByReference orderId = new IntByReference();
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE
+              .compute_device_get_885_info(compute_device, productKey, orderId);
+
+    if (ret < 0) {
+      throw new IOException("compute_device_get_885_info() failed.");
+    }
+
+    ddm885Info.productKey = productKey.getString(0);
+    ddm885Info.orderId = orderId.getValue();
+
+    return ddm885Info;
+  }
+
   public byte[] getReincarnationKeyDerivationInfo()
     throws IOException
   {
@@ -458,6 +557,8 @@ public class ComputeDevice implements AutoCloseable {
     ComputeDeviceProxyLibrary INSTANCE =
         (ComputeDeviceProxyLibrary)Native.load("compute-device-proxy",
                                                ComputeDeviceProxyLibrary.class);
+
+    static final int DDM_885_PRODUCT_KEY_LEN = 18;
 
     interface compute_device_reset_cb_t extends Callback {
       int invoke(Pointer app_data);
@@ -542,6 +643,11 @@ public class ComputeDevice implements AutoCloseable {
 
     int compute_device_set_app_key(
             Pointer compute_device);
+
+    int compute_device_get_885_info(
+            Pointer        compute_device,
+            Memory         product_key,
+            IntByReference order_id);
   }
 
   private Pointer compute_device;
