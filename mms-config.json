@@ -1,0 +1,65 @@
+{
+  "products" : [
+    {
+      "key"               : "885-RD110000000/12",
+      "type"              : "885-RD11000xx00/12",
+      "personality"       : "00"
+    },
+    {
+      "key"               : "885-RD100000000/12",
+      "type"              : "885-RD10000xx00/12",
+      "personality"       : "00"
+    }
+  ],
+  "device_types" : [
+    {
+      "id"                : 0,
+      "type"              : "885-RD11000xx00/12",
+      "device_class"      : "7b345c53-df4c-5655-b7d3-c78b7bca457f",
+      "device_type_id"    : 6,
+      "ecl"               : 0,
+      "firmware"          : "11.101.153",
+      "description"       : "DDM 885-R with Display - Development",
+      "update_time"       : "2025-10-23T19:41:30Z"
+    },
+    {
+      "id"                : 1,
+      "type"              : "885-RD10000xx00/12",
+      "device_class"      : "7b345c53-df4c-5655-b7d3-c78b7bca457f",
+      "device_type_id"    : "6",
+      "ecl"               : "0",
+      "firmware"          : "11.101.153",
+      "description"       : "DDM 885-R without Display - Development",
+      "update_time"       : "2025-10-23T19:42:30Z"
+    }
+  ],
+  "device_personalities" : [
+    {
+      "id"                : 0,
+      "personality"       : "00",
+      "description"       : "Development Device (SDK)",
+      "operating_mode"    : 0,
+      "variant"           : 0,
+      "master_key"        : "000DEB06",
+      "firmware"          : "11.101.153",
+      "application"       : 0,
+      "update_time"       : "2025-10-23T19:43:30Z"
+    }
+  ],
+  "firmwares" : [
+    {
+      "device_class"      : "7b345c53-df4c-5655-b7d3-c78b7bca457f",
+      "version"           : "11.101.153",
+      "file_name"         : "ddm-885-compute-secore.ly-fw-11.101.153.bin",
+      "initial_file_name" : "ddm-885-compute-secore.ly-initial-fw-11.101.153.bin"
+    }
+  ],
+  "applications" : [
+    {
+      "id"                : 0,
+      "description"       : "Demo Payment Application",
+      "file_name"         : "ddm-885-demo-app-11.101.153.bin",
+      "app_key_label"     : "APPLICATION_SIGN"
+    }
+  ]
+}

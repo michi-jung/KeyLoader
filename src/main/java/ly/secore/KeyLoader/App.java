@@ -6,6 +6,7 @@ import javax.swing.JFrame;
 import ly.secore.KeyLoader.GUI.IncarnationInformationPanel;
 import ly.secore.KeyLoader.GUI.ManufacturingInformationPanel;
 import ly.secore.KeyLoader.GUI.DDM885InformationPanel;
+import ly.secore.KeyLoader.Database.Product;
 import ly.secore.compute.ComputeDevice;
 import net.miginfocom.swing.MigLayout;
 
@@ -15,6 +16,19 @@ import net.miginfocom.swing.MigLayout;
 
 public class App {
   public static void main(String[] args) {
+    if (args.length < 1) {
+      System.err.println("Usage: java -jar KeyLoader.jar <path_to_device>");
+      System.exit(1);
+    }
+
+    if (args.length > 1) {
+      Product[] products = ly.secore.KeyLoader.Database.Reader.readJSONFile(args[1]);
+
+      for (Product product : products) {
+        System.out.println(product);
+      }
+    }
+
     try (ComputeDevice computeDevice = new ComputeDevice(args[0]))
     {
         ComputeDevice.ManufacturingInfo mfgInfo;
