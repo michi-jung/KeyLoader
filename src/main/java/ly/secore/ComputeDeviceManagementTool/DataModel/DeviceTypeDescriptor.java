@@ -70,11 +70,11 @@ public class DeviceTypeDescriptor {
         return updateTime;
     }
 
-    public FirmwareDescriptor getfirmwareDescriptor() {
+    public FirmwareDescriptor getFirmwareDescriptor() {
         return firmwareDescriptor;
     }
 
-    public void setfirmwareDescriptor(FirmwareDescriptor firmwareDescriptor) {
+    public void setFirmwareDescriptor(FirmwareDescriptor firmwareDescriptor) {
         this.firmwareDescriptor = firmwareDescriptor;
     }
 

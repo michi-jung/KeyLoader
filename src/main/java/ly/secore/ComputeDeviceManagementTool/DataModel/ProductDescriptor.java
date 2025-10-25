@@ -8,10 +8,10 @@ public class ProductDescriptor {
     private String personality;
 
     @JsonIgnore
-    private DeviceTypeDescriptor deviceType;
+    private DeviceTypeDescriptor deviceTypeDescriptor;
 
     @JsonIgnore
-    private DevicePersonalityDescriptor devicePersonality;
+    private DevicePersonalityDescriptor devicePersonalityDescriptor;
 
     public void setProductKey(String productKey) {
         this.productKey = productKey;
@@ -37,28 +37,24 @@ public class ProductDescriptor {
         return personality;
     }
 
-    public DeviceTypeDescriptor getDeviceType() {
-        return deviceType;
+    public DeviceTypeDescriptor getDeviceTypeDescriptor() {
+        return deviceTypeDescriptor;
     }
 
-    public void setDeviceType(DeviceTypeDescriptor deviceType) {
-        this.deviceType = deviceType;
+    public void setDeviceType(DeviceTypeDescriptor deviceTypeDescriptor) {
+        this.deviceTypeDescriptor = deviceTypeDescriptor;
     }
 
-    public DevicePersonalityDescriptor getDevicePersonality() {
-        return devicePersonality;
+    public DevicePersonalityDescriptor getDevicePersonalityDescriptor() {
+        return devicePersonalityDescriptor;
     }
 
-    public void setDevicePersonality(DevicePersonalityDescriptor devicePersonality) {
-        this.devicePersonality = devicePersonality;
+    public void setDevicePersonality(DevicePersonalityDescriptor devicePersonalityDescriptor) {
+        this.devicePersonalityDescriptor = devicePersonalityDescriptor;
     }
 
     @Override
     public String toString() {
-        return "ProductDescriptor{" +
-                "productKey='" + productKey + '\'' +
-                ", type='" + deviceType.toString() + '\'' +
-                ", personality='" + devicePersonality.toString() + '\'' +
-                '}';
+        return productKey;
     }
 }

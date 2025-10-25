@@ -1,13 +1,10 @@
 package ly.secore.ComputeDeviceManagementTool.GUI;
 
-import java.awt.Font;
-
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
 import ly.secore.compute.ComputeDevice;
@@ -31,9 +28,6 @@ public class ManufacturingInformationPanel extends JPanel {
 
     public void setManufacturingInfo(ComputeDevice.ManufacturingInfo manufacturingInfo)
     {
-        setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createEtchedBorder(), "Manufacturing Information"));
-
         deviceClassLabel.setText(manufacturingInfo.getDeviceClassName() +
                                     " (" + manufacturingInfo.getDeviceClassUUID() + ")");
 
@@ -55,16 +49,17 @@ public class ManufacturingInformationPanel extends JPanel {
 
     private void initComponents() {
         JLabel tempLabel;
-        Font plainLabelFont = UIManager.getFont("Label.font").deriveFont(Font.PLAIN);
 
         setLayout(new MigLayout("insets 10", "[grow]10[grow,fill]"));
+
+        setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createEtchedBorder(), "Manufacturing Information"));
 
         tempLabel = new JLabel("Device Class");
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
         deviceClassLabel= new JLabel();
-        deviceClassLabel.setFont(plainLabelFont);
         this.add(deviceClassLabel, "wrap,growx");
 
         tempLabel = new JLabel("Device Type");
@@ -72,7 +67,6 @@ public class ManufacturingInformationPanel extends JPanel {
         this.add(tempLabel, "growx");
 
         deviceTypeLabel = new JLabel();
-        deviceTypeLabel.setFont(plainLabelFont);
         this.add(deviceTypeLabel, "wrap,growx");
 
         tempLabel = new JLabel("Engineering Change Level");
@@ -80,7 +74,6 @@ public class ManufacturingInformationPanel extends JPanel {
         this.add(tempLabel, "growx");
 
         engineeringChangeLevelLabel = new JLabel();
-        engineeringChangeLevelLabel.setFont(plainLabelFont);
         this.add(engineeringChangeLevelLabel, "wrap,growx");
 
         tempLabel = new JLabel("Serial Number");
@@ -88,7 +81,6 @@ public class ManufacturingInformationPanel extends JPanel {
         this.add(tempLabel, "growx");
 
         serialNumberLabel = new JLabel();
-        serialNumberLabel.setFont(plainLabelFont);
         this.add(serialNumberLabel, "wrap,growx");
 
         tempLabel = new JLabel("MAC Address");
@@ -96,7 +88,6 @@ public class ManufacturingInformationPanel extends JPanel {
         this.add(tempLabel, "growx");
 
         macAddressLabel = new JLabel();
-        macAddressLabel.setFont(plainLabelFont);
         this.add(macAddressLabel, "wrap,growx");
 
         tempLabel = new JLabel("Time of Production");
@@ -104,7 +95,6 @@ public class ManufacturingInformationPanel extends JPanel {
         this.add(tempLabel, "growx");
 
         timeOfProductionLabel = new JLabel();
-        timeOfProductionLabel.setFont(plainLabelFont);
         this.add(timeOfProductionLabel, "wrap,growx");
     }
 }

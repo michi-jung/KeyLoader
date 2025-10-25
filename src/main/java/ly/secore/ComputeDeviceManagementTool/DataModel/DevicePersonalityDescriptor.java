@@ -95,7 +95,7 @@ public class DevicePersonalityDescriptor {
         this.firmwareDescriptor = firmwareDescriptor;
     }
 
-    public FirmwareDescriptor getfirmwareDescriptor() {
+    public FirmwareDescriptor getFirmwareDescriptor() {
         return firmwareDescriptor;
     }
 

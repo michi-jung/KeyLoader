@@ -49,7 +49,7 @@ public class JsonReader {
             for (DeviceTypeDescriptor deviceTypeDescriptor : databaseContent.deviceTypeDescriptors) {
                 for (FirmwareDescriptor firmwareDescriptor : databaseContent.firmwareDescriptors) {
                     if (firmwareDescriptor.getVersion().equals(deviceTypeDescriptor.getFirmwareVersion())) {
-                        deviceTypeDescriptor.setfirmwareDescriptor(firmwareDescriptor);
+                        deviceTypeDescriptor.setFirmwareDescriptor(firmwareDescriptor);
                     }
                 }
             }
