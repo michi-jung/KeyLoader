@@ -1,12 +1,14 @@
 package ly.secore.KeyLoader;
 
 import com.formdev.flatlaf.FlatLightLaf;
+import java.io.FileInputStream;
 import javax.swing.SwingUtilities;
 import javax.swing.JFrame;
 import ly.secore.KeyLoader.GUI.IncarnationInformationPanel;
 import ly.secore.KeyLoader.GUI.ManufacturingInformationPanel;
 import ly.secore.KeyLoader.GUI.DDM885InformationPanel;
-import ly.secore.KeyLoader.Database.Product;
+import ly.secore.KeyLoader.Database.ProductDescriptor;
+import ly.secore.KeyLoader.Database.JsonReader;
 import ly.secore.compute.ComputeDevice;
 import net.miginfocom.swing.MigLayout;
 
@@ -22,10 +24,12 @@ public class App {
     }
 
     if (args.length > 1) {
-      Product[] products = ly.secore.KeyLoader.Database.Reader.readJSONFile(args[1]);
-
-      for (Product product : products) {
-        System.out.println(product);
+      try (FileInputStream jsonInputStream = new FileInputStream(args[1])) {
+        for (ProductDescriptor product : JsonReader.getProductDescriptors(jsonInputStream)) {
+          System.out.println(product);
+        }
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to read JSON file: " + args[1], e);
       }
     }
 

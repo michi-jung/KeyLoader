@@ -1,52 +1,49 @@
 {
-  "products" : [
+  "product_descriptors" : [
     {
-      "key"               : "885-RD110000000/12",
+      "product_key"       : "885-RD110000000/12",
       "type"              : "885-RD11000xx00/12",
       "personality"       : "00"
     },
     {
-      "key"               : "885-RD100000000/12",
+      "product_key"       : "885-RD100000000/12",
       "type"              : "885-RD10000xx00/12",
       "personality"       : "00"
     }
   ],
-  "device_types" : [
+  "device_type_descriptors" : [
     {
-      "id"                : 0,
       "type"              : "885-RD11000xx00/12",
       "device_class"      : "7b345c53-df4c-5655-b7d3-c78b7bca457f",
       "device_type_id"    : 6,
       "ecl"               : 0,
-      "firmware"          : "11.101.153",
-      "description"       : "DDM 885-R with Display - Development",
+      "firmware_version"  : "11.101.153",
+      "description"       : "DDM 885-R with Display (Development)",
       "update_time"       : "2025-10-23T19:41:30Z"
     },
     {
-      "id"                : 1,
       "type"              : "885-RD10000xx00/12",
       "device_class"      : "7b345c53-df4c-5655-b7d3-c78b7bca457f",
       "device_type_id"    : "6",
       "ecl"               : "0",
-      "firmware"          : "11.101.153",
-      "description"       : "DDM 885-R without Display - Development",
+      "firmware_version"  : "11.101.153",
+      "description"       : "DDM 885-R without Display (Development)",
       "update_time"       : "2025-10-23T19:42:30Z"
     }
   ],
-  "device_personalities" : [
+  "device_personality_descriptors" : [
     {
-      "id"                : 0,
       "personality"       : "00",
       "description"       : "Development Device (SDK)",
       "operating_mode"    : 0,
       "variant"           : 0,
       "master_key"        : "000DEB06",
-      "firmware"          : "11.101.153",
-      "application"       : 0,
+      "firmware_version"  : "11.101.153",
+      "application_id"    : 0,
       "update_time"       : "2025-10-23T19:43:30Z"
     }
   ],
-  "firmwares" : [
+  "firmware_descriptors" : [
     {
       "device_class"      : "7b345c53-df4c-5655-b7d3-c78b7bca457f",
       "version"           : "11.101.153",
@@ -54,11 +51,21 @@
       "initial_file_name" : "ddm-885-compute-secore.ly-initial-fw-11.101.153.bin"
     }
   ],
-  "applications" : [
+  "application_descriptors" : [
     {
       "id"                : 0,
-      "description"       : "Demo Payment Application",
+      "application_class" : "b8aac6c5-e54d-59a3-9569-396cc84d779d",
+      "version"           : "11.101.153",
+      "description"       : "demo-app for ddm-885",
       "file_name"         : "ddm-885-demo-app-11.101.153.bin",
+      "app_key_label"     : "APPLICATION_SIGN"
+    },
+    {
+      "id"                : 1,
+      "application_class" : "d7ec6119-29ae-5724-a0e9-1e4a121a0412",
+      "version"           : "0.1.0",
+      "description"       : "pay-secore.ly for ddm-885",
+      "file_name"         : "ddm-885-pay-secore.ly-0.1.0.bin",
       "app_key_label"     : "APPLICATION_SIGN"
     }
   ]
