@@ -1,4 +1,4 @@
-package ly.secore.ComputeDeviceManagementTool.GUI;
+package ly.secore.compute.DeviceManagementTool.GUI;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
@@ -7,7 +7,7 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
 import java.time.format.DateTimeFormatter;
-import ly.secore.compute.ComputeDevice;
+import ly.secore.compute.Device;
 import net.miginfocom.swing.MigLayout;
 
 public class IncarnationInformationPanel extends JPanel {
@@ -23,7 +23,7 @@ public class IncarnationInformationPanel extends JPanel {
         initComponents();
     }
 
-    public void setIncarnationInfo(ComputeDevice.ReincarnationInfo reincarnationInfo)
+    public void setIncarnationInfo(Device.ReincarnationInfo reincarnationInfo)
     {
         timeOfReincarnationLabel.setText(reincarnationInfo.getTimeOfReincarnation()
             .format(DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.FULL)));

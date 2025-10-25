@@ -62,13 +62,13 @@ public class KeyLoader implements AutoCloseable {
     hSession = p11.C_OpenSession(slotID, PKCS11Constants.CKF_SERIAL_SESSION, 0, null);
   }
 
-  public ComputeDevice.ManufacturingResetSecret deriveMfgResetSecret(int derivationInput)
+  public Device.ManufacturingResetSecret deriveMfgResetSecret(int derivationInput)
       throws IOException, PKCS11Exception
   {
     CK_ATTRIBUTE[] mfgResetMasterKeyTemplate = new CK_ATTRIBUTE[3];
     CK_MECHANISM ckm_aes_ecb = new CK_MECHANISM();
     Memory memory;
-    ComputeDevice.ManufacturingResetSecret mfgResetSecret;
+    Device.ManufacturingResetSecret mfgResetSecret;
     byte[] cleartext;
     byte[] ciphertext;
     long[] hMasterKey;
@@ -108,7 +108,7 @@ public class KeyLoader implements AutoCloseable {
     ciphertext = p11.C_Encrypt(hSession, null, cleartext);
 
     memory.write(0, ciphertext, 0, 16);
-    mfgResetSecret = new ComputeDevice.ManufacturingResetSecret(memory);
+    mfgResetSecret = new Device.ManufacturingResetSecret(memory);
 
     return mfgResetSecret;
   }

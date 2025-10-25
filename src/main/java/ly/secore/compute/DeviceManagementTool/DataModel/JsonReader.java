@@ -1,4 +1,4 @@
-package ly.secore.ComputeDeviceManagementTool.DataModel;
+package ly.secore.compute.DeviceManagementTool.DataModel;
 
 import java.io.InputStream;
 import java.util.List;

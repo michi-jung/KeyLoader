@@ -1,5 +1,5 @@
 /*
- * ly.secore.compute.ComputeDevice
+ * ly.secore.compute.Device
  * Management of devices powered by compute secore.ly Firmware
  *
  * Copyright (c) 2025 secore.ly GmbH
@@ -34,7 +34,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
-public class ComputeDevice implements AutoCloseable {
+public class Device implements AutoCloseable {
 
   @Structure.FieldOrder({ "mfg_reset_secret" })
   public static class ManufacturingResetSecret extends Structure {
@@ -283,7 +283,7 @@ public class ComputeDevice implements AutoCloseable {
     public int orderId;
   }
 
-  public ComputeDevice(String host, String service) throws IOException {
+  public Device(String host, String service) throws IOException {
     compute_device =
         ComputeDeviceProxyLibrary.INSTANCE.compute_device_proxy_tcp_new(
             host,
@@ -296,7 +296,7 @@ public class ComputeDevice implements AutoCloseable {
     }
   }
 
-  public ComputeDevice(String dev_tty_fn) throws IOException {
+  public Device(String dev_tty_fn) throws IOException {
 
     ComputeDeviceProxyLibrary.compute_device_reset_cb_t reset_cb =
       new ComputeDeviceProxyLibrary.compute_device_reset_cb_t() {

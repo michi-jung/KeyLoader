@@ -1,4 +1,4 @@
-package ly.secore.ComputeDeviceManagementTool.GUI;
+package ly.secore.compute.DeviceManagementTool.GUI;
 
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
@@ -8,11 +8,11 @@ import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 
-import ly.secore.ComputeDeviceManagementTool.DataModel.ApplicationDescriptor;
-import ly.secore.ComputeDeviceManagementTool.DataModel.DevicePersonalityDescriptor;
-import ly.secore.ComputeDeviceManagementTool.DataModel.DeviceTypeDescriptor;
-import ly.secore.ComputeDeviceManagementTool.DataModel.FirmwareDescriptor;
-import ly.secore.ComputeDeviceManagementTool.DataModel.ProductDescriptor;
+import ly.secore.compute.DeviceManagementTool.DataModel.ApplicationDescriptor;
+import ly.secore.compute.DeviceManagementTool.DataModel.DevicePersonalityDescriptor;
+import ly.secore.compute.DeviceManagementTool.DataModel.DeviceTypeDescriptor;
+import ly.secore.compute.DeviceManagementTool.DataModel.FirmwareDescriptor;
+import ly.secore.compute.DeviceManagementTool.DataModel.ProductDescriptor;
 import net.miginfocom.swing.MigLayout;
 
 public class ProductDescriptorPanel extends JPanel {

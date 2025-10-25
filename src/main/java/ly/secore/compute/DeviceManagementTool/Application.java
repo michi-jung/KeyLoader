@@ -1,19 +1,19 @@
-package ly.secore.ComputeDeviceManagementTool;
+package ly.secore.compute.DeviceManagementTool;
 
 import com.formdev.flatlaf.FlatLightLaf;
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.util.List;
 
 import javax.swing.SwingUtilities;
 import javax.swing.JFrame;
 
-import ly.secore.ComputeDeviceManagementTool.DataModel.JsonReader;
-import ly.secore.ComputeDeviceManagementTool.DataModel.ProductDescriptor;
-import ly.secore.ComputeDeviceManagementTool.GUI.DDM885InformationPanel;
-import ly.secore.ComputeDeviceManagementTool.GUI.IncarnationInformationPanel;
-import ly.secore.ComputeDeviceManagementTool.GUI.ManufacturingInformationPanel;
-import ly.secore.ComputeDeviceManagementTool.GUI.ProductDescriptorPanel;
-import ly.secore.compute.ComputeDevice;
+import ly.secore.compute.Device;
+import ly.secore.compute.DeviceManagementTool.DataModel.JsonReader;
+import ly.secore.compute.DeviceManagementTool.DataModel.ProductDescriptor;
+import ly.secore.compute.DeviceManagementTool.GUI.DDM885InformationPanel;
+import ly.secore.compute.DeviceManagementTool.GUI.IncarnationInformationPanel;
+import ly.secore.compute.DeviceManagementTool.GUI.ManufacturingInformationPanel;
+import ly.secore.compute.DeviceManagementTool.GUI.ProductDescriptorPanel;
 import net.miginfocom.swing.MigLayout;
 
 /**
@@ -27,14 +27,14 @@ public class Application {
       System.exit(1);
     }
 
-    try (ComputeDevice computeDevice = new ComputeDevice(args[0]))
+    try (Device computeDevice = new Device(args[0]))
     {
-        ComputeDevice.ManufacturingInfo mfgInfo;
-        ComputeDevice.ReincarnationInfo incInfo;
-        ComputeDevice.DDM885Info ddm885Info;
+        Device.ManufacturingInfo mfgInfo;
+        Device.ReincarnationInfo incInfo;
+        Device.DDM885Info ddm885Info;
         final ProductDescriptor productDescriptor;
 
-        try (FileInputStream jsonInputStream = new FileInputStream(args[1])) {
+        try (InputStream jsonInputStream = Application.class.getResourceAsStream("products.json");) {
             List<ProductDescriptor> productDescriptors = JsonReader.getProductDescriptors(jsonInputStream);
 
             if (productDescriptors.isEmpty()) {
@@ -56,7 +56,7 @@ public class Application {
 
         JFrame frame = new JFrame("compute secore.ly Device Management Tool");
 
-         SwingUtilities.invokeLater(() -> {
+        SwingUtilities.invokeLater(() -> {
             frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
             frame.setLayout(new MigLayout("wrap 1", "[grow]", "[]10[]"));
             frame.add(manufacturingInfoPanel, "growx");

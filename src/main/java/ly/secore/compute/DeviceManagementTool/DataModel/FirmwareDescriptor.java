@@ -1,4 +1,4 @@
-package ly.secore.ComputeDeviceManagementTool.DataModel;
+package ly.secore.compute.DeviceManagementTool.DataModel;
 
 public class FirmwareDescriptor {
     private String deviceClass;

@@ -1,4 +1,4 @@
-package ly.secore.ComputeDeviceManagementTool.GUI;
+package ly.secore.compute.DeviceManagementTool.GUI;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
@@ -6,7 +6,7 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
-import ly.secore.compute.ComputeDevice;
+import ly.secore.compute.Device;
 import net.miginfocom.swing.MigLayout;
 
 public class DDM885InformationPanel extends JPanel {
@@ -20,7 +20,7 @@ public class DDM885InformationPanel extends JPanel {
         initComponents();
     }
 
-    public void setIncarnationInfo(ComputeDevice.DDM885Info ddm885Info)
+    public void setIncarnationInfo(Device.DDM885Info ddm885Info)
     {
         orderIdLabel.setText(String.format("%d", ddm885Info.orderId));
         productKeyLabel.setText(ddm885Info.productKey);

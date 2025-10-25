@@ -1,4 +1,4 @@
-package ly.secore.ComputeDeviceManagementTool.DataModel;
+package ly.secore.compute.DeviceManagementTool.DataModel;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 

@@ -2,14 +2,14 @@ package ly.secore.KeyLoader;
 
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
-import ly.secore.compute.ComputeDevice;
+import ly.secore.compute.Device;
 
 class ComputeDeviceInfo {
   public static void main(String args[]) {
-    try (ComputeDevice computeDevice = new ComputeDevice(args[0]))
+    try (Device computeDevice = new Device(args[0]))
     {
-      ComputeDevice.ManufacturingInfo mfgInfo;
-      ComputeDevice.ReincarnationInfo incInfo;
+      Device.ManufacturingInfo mfgInfo;
+      Device.ReincarnationInfo incInfo;
       byte[] derivationInfo;
 
       computeDevice.openServiceSession();
