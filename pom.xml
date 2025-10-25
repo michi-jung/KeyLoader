@@ -131,7 +131,7 @@
             <archive>
               <manifest>
                 <mainClass>
-                  ly.secore.KeyLoader.App
+                  ly.secore.ComputeDeviceManagementTool.Application
                 </mainClass>
               </manifest>
               <manifestEntries>

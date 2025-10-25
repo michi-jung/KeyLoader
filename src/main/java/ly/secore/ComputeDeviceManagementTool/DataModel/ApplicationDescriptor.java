@@ -1,4 +1,4 @@
-package ly.secore.KeyLoader.Database;
+package ly.secore.ComputeDeviceManagementTool.DataModel;
 
 public class ApplicationDescriptor {
     private int id;

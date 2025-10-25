@@ -1,14 +1,15 @@
-package ly.secore.KeyLoader;
+package ly.secore.ComputeDeviceManagementTool;
 
 import com.formdev.flatlaf.FlatLightLaf;
 import java.io.FileInputStream;
 import javax.swing.SwingUtilities;
 import javax.swing.JFrame;
-import ly.secore.KeyLoader.GUI.IncarnationInformationPanel;
-import ly.secore.KeyLoader.GUI.ManufacturingInformationPanel;
-import ly.secore.KeyLoader.GUI.DDM885InformationPanel;
-import ly.secore.KeyLoader.Database.ProductDescriptor;
-import ly.secore.KeyLoader.Database.JsonReader;
+
+import ly.secore.ComputeDeviceManagementTool.DataModel.JsonReader;
+import ly.secore.ComputeDeviceManagementTool.DataModel.ProductDescriptor;
+import ly.secore.ComputeDeviceManagementTool.GUI.DDM885InformationPanel;
+import ly.secore.ComputeDeviceManagementTool.GUI.IncarnationInformationPanel;
+import ly.secore.ComputeDeviceManagementTool.GUI.ManufacturingInformationPanel;
 import ly.secore.compute.ComputeDevice;
 import net.miginfocom.swing.MigLayout;
 
@@ -16,7 +17,7 @@ import net.miginfocom.swing.MigLayout;
  * Main application class for displaying manufacturing and incarnation information.
  */
 
-public class App {
+public class Application {
   public static void main(String[] args) {
     if (args.length < 1) {
       System.err.println("Usage: java -jar KeyLoader.jar <path_to_device>");

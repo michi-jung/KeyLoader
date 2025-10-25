@@ -1,4 +1,4 @@
-package ly.secore.KeyLoader.Database;
+package ly.secore.ComputeDeviceManagementTool.DataModel;
 
 import java.io.InputStream;
 import java.util.List;

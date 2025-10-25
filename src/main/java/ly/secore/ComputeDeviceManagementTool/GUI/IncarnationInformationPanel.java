@@ -1,4 +1,4 @@
-package ly.secore.KeyLoader.GUI;
+package ly.secore.ComputeDeviceManagementTool.GUI;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;

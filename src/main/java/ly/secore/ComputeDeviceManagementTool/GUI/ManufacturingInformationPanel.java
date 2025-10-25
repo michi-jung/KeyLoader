@@ -1,4 +1,4 @@
-package ly.secore.KeyLoader.GUI;
+package ly.secore.ComputeDeviceManagementTool.GUI;
 
 import java.awt.Font;
 
