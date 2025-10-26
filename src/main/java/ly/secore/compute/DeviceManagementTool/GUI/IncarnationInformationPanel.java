@@ -36,8 +36,10 @@ public class IncarnationInformationPanel extends JPanel {
         } else {
             timeOfReincarnationValue.setText(reincarnationInfo.getTimeOfReincarnation()
                 .format(DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.FULL)));
-            devicePersonalityValue.setText(reincarnationInfo.getDevicePersonalityName()
-                + " (" + reincarnationInfo.getDevicePersonality() + ")");
+            devicePersonalityValue.setText(
+                Device.ReincarnationInfo
+                    .getDevicePersonalityName(reincarnationInfo.getDevicePersonality()) +
+                    " (" + reincarnationInfo.getDevicePersonality() + ")");
             operatingModeValue.setText(reincarnationInfo.getOperatingModeName()
                 + " (" + reincarnationInfo.getOperatingMode() + ")");
             masterKeyIdValue.setText(reincarnationInfo.getMasterKeyIdName());

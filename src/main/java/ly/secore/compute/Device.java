@@ -36,7 +36,53 @@ import org.apache.logging.log4j.LogManager;
 
 public class Device implements AutoCloseable {
 
-  @Structure.FieldOrder({ "mfg_reset_secret" })
+  @Structure.FieldOrder({
+    "state",
+    "timestamp",
+    "tamper_status"
+  })
+  public static class LifecycleInfo extends Structure {
+    public int state;
+    public int timestamp;
+    public int tamper_status;
+
+    public static final int LIFECYCLE_STATE_MANUFACTURED       = -1;
+    public static final int LIFECYCLE_STATE_MANUFACTURING_TEST = 0;
+    public static final int LIFECYCLE_STATE_PERSONALIZATION    = 1;
+    public static final int LIFECYCLE_STATE_OPERATION          = 2;
+    public static final int LIFECYCLE_STATE_FORENSIC_ANALYSIS  = 3;
+    public static final int LIFECYCLE_STATE_DECOMMISSIONED     = 4;
+
+    public LifecycleInfo() { super(); }
+
+    public LifecycleInfo(Pointer p) {
+      super(p);
+      read();
+    }
+
+    public static String getStateName(int state) {
+      switch (state) {
+        case LIFECYCLE_STATE_MANUFACTURED:
+          return new String("Manufactured");
+        case LIFECYCLE_STATE_MANUFACTURING_TEST:
+          return new String("Manufacturing Test");
+        case LIFECYCLE_STATE_PERSONALIZATION:
+          return new String("Personalization");
+        case LIFECYCLE_STATE_OPERATION:
+          return new String("Operation");
+        case LIFECYCLE_STATE_FORENSIC_ANALYSIS:
+          return new String("Forensic Analysis");
+        case LIFECYCLE_STATE_DECOMMISSIONED:
+          return new String("Decommissioned");
+        default:
+          return new String("Unknown State");
+      }
+    }
+  }
+
+  @Structure.FieldOrder({
+    "mfg_reset_secret"
+  })
   public static class ManufacturingResetSecret extends Structure {
     public int[] mfg_reset_secret = new int[2];
 
@@ -220,8 +266,12 @@ public class Device implements AutoCloseable {
       return device_personality;
     }
 
-    public String getDevicePersonalityName() {
-      switch (device_personality) {
+    public void setDevicePersonality(int devicePersonality) {
+      device_personality = devicePersonality;
+    }
+
+    public static String getDevicePersonalityName(int devicePersonality) {
+      switch (devicePersonality) {
         case DEVICE_PERSONALITY_PCI_POI:
           return new String("PCI POI");
         case DEVICE_PERSONALITY_PCI_HSM:
@@ -229,10 +279,6 @@ public class Device implements AutoCloseable {
         default:
           return new String("Unknown Device Personality");
       }
-    }
-
-    public void setDevicePersonality(int devicePersonality) {
-      device_personality = devicePersonality;
     }
 
     public int getOperatingMode() {
@@ -516,6 +562,24 @@ public class Device implements AutoCloseable {
     return ddm885Info;
   }
 
+  public LifecycleInfo getLifecycleInfo()
+    throws IOException
+  {
+    LifecycleInfo lifecycleInfo = new LifecycleInfo();
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE
+              .compute_device_get_lifecycle_info(compute_device, lifecycleInfo);
+
+    if (ret < 0) {
+      throw new IOException("compute_device_get_lifecycle_info() failed.");
+    }
+
+    lifecycleInfo.read();
+
+    return lifecycleInfo;
+  }
+
   public byte[] getReincarnationKeyDerivationInfo()
     throws IOException
   {
@@ -648,6 +712,10 @@ public class Device implements AutoCloseable {
             Pointer        compute_device,
             Memory         product_key,
             IntByReference order_id);
+
+    int compute_device_get_lifecycle_info(
+            Pointer       compute_device,
+            LifecycleInfo lifecycle_info);
   }
 
   private Pointer compute_device;

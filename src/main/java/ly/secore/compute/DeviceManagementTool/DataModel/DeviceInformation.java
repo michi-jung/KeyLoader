@@ -6,6 +6,7 @@ public class DeviceInformation {
     private Device.ManufacturingInfo manufacturingInfo;
     private Device.ReincarnationInfo reincarnationInfo;
     private Device.DDM885Info ddm885Info;
+    private Device.LifecycleInfo lifecycleInfo;
     boolean isDeviceConnected;
 
     public void setManufacturingInfo(Device.ManufacturingInfo manufacturingInfo) {
@@ -34,6 +35,14 @@ public class DeviceInformation {
 
     public void setDeviceConnected(boolean isDeviceConnected) {
         this.isDeviceConnected = isDeviceConnected;
+    }
+
+    public void setLifecycleInfo(Device.LifecycleInfo lifecycleInfo) {
+        this.lifecycleInfo = lifecycleInfo;
+    }
+
+    public Device.LifecycleInfo getLifecycleInfo() {
+        return lifecycleInfo;
     }
 
     public boolean isDeviceConnected() {

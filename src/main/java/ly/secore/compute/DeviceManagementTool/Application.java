@@ -53,6 +53,7 @@ public class Application implements Listener {
                 deviceInformation.setManufacturingInfo(computeDevice.getManufacturingInfo());
                 deviceInformation.setReincarnationInfo(computeDevice.getReincarnationInfo());
                 deviceInformation.setDDM885Info(computeDevice.getDDM885Info());
+                deviceInformation.setLifecycleInfo(computeDevice.getLifecycleInfo());
 
                 eventBus.updateDeviceInformation(this, deviceInformation);
 
@@ -67,6 +68,7 @@ public class Application implements Listener {
                 deviceInformation.setManufacturingInfo(null);
                 deviceInformation.setReincarnationInfo(null);
                 deviceInformation.setDDM885Info(null);
+                deviceInformation.setLifecycleInfo(null);
 
                 eventBus.updateDeviceInformation(this, deviceInformation);
             }

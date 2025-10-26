@@ -62,8 +62,8 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1"
-     inkscape:cx="329"
-     inkscape:cy="343"
+     inkscape:cx="263.99999"
+     inkscape:cy="407.99999"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
@@ -102,12 +102,6 @@
      inkscape:groupmode="layer"
      id="layer1"
      transform="translate(19.973883,-8.2308614)">
-    <circle
-       style="fill:#010000;fill-opacity:1;stroke:#000000;stroke-width:0.499887;stroke-linecap:round;stroke-linejoin:round"
-       id="path842"
-       cx="60.857933"
-       cy="21.730862"
-       r="3.2500567" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:4.23333px;line-height:1.25;font-family:'Fira Sans';-inkscape-font-specification:'Fira Sans, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;stroke-width:0.264583"
@@ -119,7 +113,7 @@
          x="77.773804"
          y="119.84187" /></text>
     <g
-       id="g862"
+       id="State_Manufacturing_Test"
        transform="translate(0,-12.700002)">
       <rect
          style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
@@ -207,7 +201,7 @@
          sodipodi:nodetypes="cc" />
     </g>
     <g
-       id="g862-0"
+       id="State_Personalization"
        transform="translate(0.815569,34.913183)">
       <rect
          style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
@@ -292,10 +286,11 @@
          style="text-align:end;text-anchor:end;stroke-width:0.264583"
          id="tspan1">Public Key Injection</tspan></text>
     <g
-       id="g862-0-8"
+       id="State_Operation"
        transform="translate(0.815567,76.705539)">
       <rect
-         style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
+         fill="#ffffff"
          id="rect844-2-5"
          width="40"
          height="20"
@@ -316,7 +311,7 @@
            id="tspan1691-6">Operation</tspan></text>
     </g>
     <g
-       id="g862-0-2"
+       id="State_Forensic_Analysis"
        transform="translate(70.925459,34.913183)">
       <rect
          style="fill:#ffffff;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
@@ -841,17 +836,26 @@
          y="188.95137"
          style="text-align:start;text-anchor:start;stroke-width:0.264583"
          id="tspan4531">(No Keys Retained)</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-weight:bold;font-size:4.23333px;line-height:1.25;font-family:'Fira Sans';-inkscape-font-specification:'Fira Sans, Bold';text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;stroke-width:0.264583"
-       x="13.798534"
-       y="22.871042"
-       id="text2296-3"><tspan
-         sodipodi:role="line"
+    <g
+       id="State_Manufactured">
+      <circle
+         style="fill:#010000;fill-opacity:1;stroke:#000000;stroke-width:0.499887;stroke-linecap:round;stroke-linejoin:round"
+         id="path842"
+         cx="60.857933"
+         cy="21.730862"
+         r="3.2500567" />
+      <text
+         xml:space="preserve"
+         style="font-weight:bold;font-size:4.23333px;line-height:1.25;font-family:'Fira Sans';-inkscape-font-specification:'Fira Sans, Bold';text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;stroke-width:0.264583"
          x="13.798534"
          y="22.871042"
-         style="text-align:start;text-anchor:start;stroke-width:0.264583"
-         id="tspan4497-2">Device Manufactured</tspan></text>
+         id="text2296-3"><tspan
+           sodipodi:role="line"
+           x="13.798534"
+           y="22.871042"
+           style="text-align:start;text-anchor:start;stroke-width:0.264583"
+           id="tspan4497-2">Device Manufactured</tspan></text>
+    </g>
     <rect
        style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="rect2569-7"

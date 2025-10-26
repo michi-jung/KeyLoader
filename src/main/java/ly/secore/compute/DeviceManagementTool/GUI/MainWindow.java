@@ -8,6 +8,8 @@ import ly.secore.compute.DeviceManagementTool.Event.EventBus;
 
 public class MainWindow extends JFrame {
     private Sidebar sidebar;
+    private LifecycleInformationPanel lifecycleInformationPanel;
+    private JSplitPane split;
 
     public MainWindow(EventBus eventBus) {
         super("compute secore.ly® Device Management Tool");
@@ -15,7 +17,9 @@ public class MainWindow extends JFrame {
         setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 
         sidebar = new Sidebar(eventBus);
-        JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebar, new LifecycleInformationPanel());
+        lifecycleInformationPanel = new LifecycleInformationPanel(eventBus);
+
+        split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebar, lifecycleInformationPanel);
         split.setResizeWeight(0);               // keep right side size when resizing
         split.setContinuousLayout(true);        // smoother dragging
         split.setDividerSize(6);                // thinner divider
