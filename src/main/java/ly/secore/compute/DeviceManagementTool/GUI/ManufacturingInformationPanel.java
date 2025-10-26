@@ -28,21 +28,30 @@ public class ManufacturingInformationPanel extends JPanel {
 
     public void setManufacturingInfo(Device.ManufacturingInfo manufacturingInfo)
     {
-        deviceClassLabel.setText(manufacturingInfo.getDeviceClassName() +
-                                    " (" + manufacturingInfo.getDeviceClassUUID() + ")");
+        if (manufacturingInfo == null) {
+            deviceClassLabel.setText("N/A");
+            deviceTypeLabel.setText("N/A");
+            engineeringChangeLevelLabel.setText("N/A");
+            serialNumberLabel.setText("N/A");
+            macAddressLabel.setText("N/A");
+            timeOfProductionLabel.setText("N/A");
+        } else {
+            deviceClassLabel.setText(manufacturingInfo.getDeviceClassName() +
+                                        " (" + manufacturingInfo.getDeviceClassUUID() + ")");
 
-        deviceTypeLabel.setText(manufacturingInfo.getDeviceTypeName() +
-                                " (" + manufacturingInfo.getDeviceType() + ")");
-        engineeringChangeLevelLabel.setText(
-            String.valueOf(manufacturingInfo.getEngineeringChangeLevel()));
+            deviceTypeLabel.setText(manufacturingInfo.getDeviceTypeName() +
+                                    " (" + manufacturingInfo.getDeviceType() + ")");
+            engineeringChangeLevelLabel.setText(
+                String.valueOf(manufacturingInfo.getEngineeringChangeLevel()));
 
-        serialNumberLabel.setText(String.format("%010d", manufacturingInfo.getSerialNumber()));
+            serialNumberLabel.setText(String.format("%010d", manufacturingInfo.getSerialNumber()));
 
-        macAddressLabel.setText(HexFormat.ofDelimiter(":").withUpperCase()
-            .formatHex(manufacturingInfo.getMACAddress()));
+            macAddressLabel.setText(HexFormat.ofDelimiter(":").withUpperCase()
+                .formatHex(manufacturingInfo.getMACAddress()));
 
-        timeOfProductionLabel.setText(manufacturingInfo.getTimeOfProduction()
-            .format(DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.FULL)));
+            timeOfProductionLabel.setText(manufacturingInfo.getTimeOfProduction()
+                .format(DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.FULL)));
+        }
 
         SwingUtilities.windowForComponent(this).pack();
     }
@@ -59,42 +68,42 @@ public class ManufacturingInformationPanel extends JPanel {
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        deviceClassLabel= new JLabel();
+        deviceClassLabel= new JLabel("N/A");
         this.add(deviceClassLabel, "wrap,growx");
 
         tempLabel = new JLabel("Device Type");
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        deviceTypeLabel = new JLabel();
+        deviceTypeLabel = new JLabel("N/A");
         this.add(deviceTypeLabel, "wrap,growx");
 
         tempLabel = new JLabel("Engineering Change Level");
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        engineeringChangeLevelLabel = new JLabel();
+        engineeringChangeLevelLabel = new JLabel("");
         this.add(engineeringChangeLevelLabel, "wrap,growx");
 
         tempLabel = new JLabel("Serial Number");
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        serialNumberLabel = new JLabel();
+        serialNumberLabel = new JLabel("N/A");
         this.add(serialNumberLabel, "wrap,growx");
 
         tempLabel = new JLabel("MAC Address");
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        macAddressLabel = new JLabel();
+        macAddressLabel = new JLabel("N/A");
         this.add(macAddressLabel, "wrap,growx");
 
         tempLabel = new JLabel("Time of Production");
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        timeOfProductionLabel = new JLabel();
+        timeOfProductionLabel = new JLabel("N/A");
         this.add(timeOfProductionLabel, "wrap,growx");
     }
 }

@@ -22,8 +22,14 @@ public class DDM885InformationPanel extends JPanel {
 
     public void setDDM885Info(Device.DDM885Info ddm885Info)
     {
-        orderIdLabel.setText(String.format("%d", ddm885Info.orderId));
-        productKeyLabel.setText(ddm885Info.productKey);
+        if (ddm885Info == null) {
+            productKeyLabel.setText("N/A");
+            orderIdLabel.setText("N/A");
+            return;
+        } else {
+            orderIdLabel.setText(String.format("%d", ddm885Info.orderId));
+            productKeyLabel.setText(ddm885Info.productKey);
+        }
 
         SwingUtilities.windowForComponent(this).pack();
     }
@@ -40,14 +46,14 @@ public class DDM885InformationPanel extends JPanel {
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        productKeyLabel= new JLabel();
+        productKeyLabel= new JLabel("N/A");
         this.add(productKeyLabel, "wrap,growx");
 
         tempLabel = new JLabel("Order ID");
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        orderIdLabel = new JLabel();
+        orderIdLabel = new JLabel("N/A");
         this.add(orderIdLabel, "wrap,growx");
     }
 }

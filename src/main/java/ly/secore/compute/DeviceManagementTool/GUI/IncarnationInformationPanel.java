@@ -24,16 +24,20 @@ public class IncarnationInformationPanel extends JPanel {
 
     public void setIncarnationInfo(Device.ReincarnationInfo reincarnationInfo)
     {
-        timeOfReincarnationLabel.setText(reincarnationInfo.getTimeOfReincarnation()
-            .format(DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.FULL)));
-
-        devicePersonalityLabel.setText(reincarnationInfo.getDevicePersonalityName()
-            + " (" + reincarnationInfo.getDevicePersonality() + ")");
-
-        operatingModeLabel.setText(reincarnationInfo.getOperatingModeName()
-            + " (" + reincarnationInfo.getOperatingMode() + ")");
-
-        masterKeyIdLabel.setText(reincarnationInfo.getMasterKeyIdName());
+        if (reincarnationInfo == null) {
+            timeOfReincarnationLabel.setText("N/A");
+            devicePersonalityLabel.setText("N/A");
+            operatingModeLabel.setText("N/A");
+            masterKeyIdLabel.setText("N/A");
+        } else {
+            timeOfReincarnationLabel.setText(reincarnationInfo.getTimeOfReincarnation()
+                .format(DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.FULL)));
+            devicePersonalityLabel.setText(reincarnationInfo.getDevicePersonalityName()
+                + " (" + reincarnationInfo.getDevicePersonality() + ")");
+            operatingModeLabel.setText(reincarnationInfo.getOperatingModeName()
+                + " (" + reincarnationInfo.getOperatingMode() + ")");
+            masterKeyIdLabel.setText(reincarnationInfo.getMasterKeyIdName());
+        }
 
         SwingUtilities.windowForComponent(this).pack();
     }
@@ -50,28 +54,28 @@ public class IncarnationInformationPanel extends JPanel {
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        timeOfReincarnationLabel= new JLabel();
+        timeOfReincarnationLabel= new JLabel("N/A");
         this.add(timeOfReincarnationLabel, "wrap,growx");
 
         tempLabel = new JLabel("Device Personality");
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        devicePersonalityLabel = new JLabel();
+        devicePersonalityLabel = new JLabel("N/A");
         this.add(devicePersonalityLabel, "wrap,growx");
 
         tempLabel = new JLabel("Operating Mode");
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        operatingModeLabel = new JLabel();
+        operatingModeLabel = new JLabel("N/A");
         this.add(operatingModeLabel, "wrap,growx");
 
         tempLabel = new JLabel("Master Key ID");
         tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
         this.add(tempLabel, "growx");
 
-        masterKeyIdLabel = new JLabel();
+        masterKeyIdLabel = new JLabel("N/A");
         this.add(masterKeyIdLabel, "wrap,growx");
     }
 }

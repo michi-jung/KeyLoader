@@ -5,25 +5,35 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.EventListener;
 import java.util.EventObject;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.swing.SwingUtilities;
 import ly.secore.compute.Device;
+import ly.secore.compute.DeviceManagementTool.DataModel.DeviceInformation;
+import ly.secore.compute.DeviceManagementTool.Event.EventBus;
+import ly.secore.compute.DeviceManagementTool.Event.ConnectToDeviceRequested;
+import ly.secore.compute.DeviceManagementTool.Event.DisconnectFromDeviceRequested;
+import ly.secore.compute.DeviceManagementTool.Event.Listener;
 import ly.secore.compute.DeviceManagementTool.GUI.MainWindow;
 
 /**
  * Main application class for displaying manufacturing and incarnation information.
  */
 
-public class Application implements EventListener {
+public class Application implements Listener {
 
     private MainWindow mainWindow;
     private Device computeDevice;
+    private DeviceInformation deviceInformation = new DeviceInformation();
+    private EventBus eventBus = new EventBus();
 
     public Application() {
-        mainWindow = new MainWindow(this);
+        eventBus = new EventBus();
+        eventBus.addListener(this);
+        mainWindow = new MainWindow(eventBus);
+        eventBus.updateUartPaths(this, getUartPaths());
+        mainWindow.setVisible(true);
     }
 
     public void actionRequested(EventObject requestEvent)
@@ -33,17 +43,31 @@ public class Application implements EventListener {
                 ConnectToDeviceRequested connectRequest = (ConnectToDeviceRequested) requestEvent;
                 Path uartPath = connectRequest.getUartPath();
 
+                mainWindow.signalBusy();
+
                 computeDevice = new Device(uartPath.toString());
                 computeDevice.openServiceSession();
 
-                mainWindow.setManufacturingInfo(computeDevice.getManufacturingInfo());
-                mainWindow.setIncarnationInfo(computeDevice.getReincarnationInfo());
-                mainWindow.setDDM885Info(computeDevice.getDDM885Info());
-            }
-            else {
-                throw new RuntimeException(
-                    "actionRequested() failed",
-                    new IllegalArgumentException("Unknown request event: " + requestEvent));
+                deviceInformation.setDeviceConnected(true);
+                deviceInformation.setManufacturingInfo(computeDevice.getManufacturingInfo());
+                deviceInformation.setReincarnationInfo(computeDevice.getReincarnationInfo());
+                deviceInformation.setDDM885Info(computeDevice.getDDM885Info());
+
+                eventBus.updateDeviceInformation(this, deviceInformation);
+
+                mainWindow.signalReady();
+            } else if (requestEvent instanceof DisconnectFromDeviceRequested) {
+                if (computeDevice != null) {
+                    computeDevice.closeServiceSession();
+                    computeDevice = null;
+                }
+
+                deviceInformation.setDeviceConnected(false);
+                deviceInformation.setManufacturingInfo(null);
+                deviceInformation.setReincarnationInfo(null);
+                deviceInformation.setDDM885Info(null);
+
+                eventBus.updateDeviceInformation(this, deviceInformation);
             }
         }
         catch (Exception e) {
@@ -69,19 +93,5 @@ public class Application implements EventListener {
         SwingUtilities.invokeLater(() -> {
             new Application();
         });
-    }
-
-    public static class ConnectToDeviceRequested extends EventObject {
-        private static final long serialVersionUID = 1L;
-        private final Path uartPath;
-
-        public ConnectToDeviceRequested(Object source, Path uartPath) {
-            super(source);
-            this.uartPath = uartPath;
-        }
-
-        public Path getUartPath() {
-            return uartPath;
-        }
     }
 }

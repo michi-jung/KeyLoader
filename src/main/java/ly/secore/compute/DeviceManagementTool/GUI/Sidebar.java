@@ -6,28 +6,34 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.nio.file.Path;
+import java.util.EventObject;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JPanel;
-import ly.secore.compute.DeviceManagementTool.Application;
-import ly.secore.compute.Device;
+import javax.swing.SwingUtilities;
+import ly.secore.compute.DeviceManagementTool.DataModel.DeviceInformation;
+import ly.secore.compute.DeviceManagementTool.Event.Listener;
+import ly.secore.compute.DeviceManagementTool.Event.UpdateDeviceInformationRequested;
+import ly.secore.compute.DeviceManagementTool.Event.EventBus;
+import ly.secore.compute.DeviceManagementTool.Event.UpdateUartPathsRequested;
 
-public class Sidebar extends JPanel implements ActionListener{
+public class Sidebar extends JPanel implements ActionListener, Listener {
     private static final long serialVersionUID = 1L;
-    private final Application application;
-    private JComboBox<Path> uartComboBox;
+    private final EventBus eventBus;
+    private DeviceInformation deviceInformation = new DeviceInformation();
+    private JComboBox<Path> uartComboBox = new JComboBox<>();
     private JButton connectButton = new JButton("Connect to Device");
     private ManufacturingInformationPanel manufacturingInformationPanel = new ManufacturingInformationPanel();
     private IncarnationInformationPanel incarnationInformationPanel = new IncarnationInformationPanel();
     private DDM885InformationPanel ddm885InformationPanel = new DDM885InformationPanel();
 
-    public Sidebar(Application application) {
+    public Sidebar(EventBus eventBus) {
         GridBagConstraints gbc = new GridBagConstraints();
 
-        this.application = application;
+        this.eventBus = eventBus;
 
-        uartComboBox = new JComboBox<>(application.getUartPaths());
         connectButton.addActionListener(this);
+        eventBus.addListener(this);
 
         setLayout(new GridBagLayout());
 
@@ -49,23 +55,42 @@ public class Sidebar extends JPanel implements ActionListener{
 
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == connectButton) {
-            Path uartPath = (Path) uartComboBox.getSelectedItem();
-            if (uartPath != null) {
-                application.actionRequested(
-                    new Application.ConnectToDeviceRequested(this, uartPath));
+            if (deviceInformation.isDeviceConnected()) {
+                eventBus.disconnectFromDevice(e.getSource());
+            } else {
+                eventBus.connectToDevice(e.getSource(), (Path)uartComboBox.getSelectedItem());
             }
         }
     }
 
-    public void setManufacturingInfo(Device.ManufacturingInfo manufacturingInfo) {
-        manufacturingInformationPanel.setManufacturingInfo(manufacturingInfo);
-    }
+    public void actionRequested(EventObject requestEvent) {
+        if (requestEvent instanceof UpdateUartPathsRequested) {
+            uartComboBox.removeAllItems();
+            for (Path path : ((UpdateUartPathsRequested)requestEvent).getUartPaths()) {
+                uartComboBox.addItem(path);
+            }
+            SwingUtilities.windowForComponent(this).pack();
+        } else if (requestEvent instanceof UpdateDeviceInformationRequested) {
+            deviceInformation =
+                ((UpdateDeviceInformationRequested)requestEvent).getDeviceInformation();
 
-    public void setIncarnationInfo(Device.ReincarnationInfo reincarnationInfo) {
-        incarnationInformationPanel.setIncarnationInfo(reincarnationInfo);
-    }
+            if (deviceInformation.isDeviceConnected()) {
+                connectButton.setText("Disconnect from Device");
+                uartComboBox.setEnabled(false);
+                manufacturingInformationPanel.setEnabled(true);
+                incarnationInformationPanel.setEnabled(true);
+                ddm885InformationPanel.setEnabled(true);
+            } else {
+                connectButton.setText("Connect to Device");
+                uartComboBox.setEnabled(true);
+                manufacturingInformationPanel.setEnabled(false);
+                incarnationInformationPanel.setEnabled(false);
+                ddm885InformationPanel.setEnabled(false);
+            }
 
-    public void setDDM885Info(Device.DDM885Info ddm885Info) {
-        ddm885InformationPanel.setDDM885Info(ddm885Info);
+            manufacturingInformationPanel.setManufacturingInfo(deviceInformation.getManufacturingInfo());
+            incarnationInformationPanel.setIncarnationInfo(deviceInformation.getReincarnationInfo());
+            ddm885InformationPanel.setDDM885Info(deviceInformation.getDDM885Info());
+        }
     }
 }

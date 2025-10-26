@@ -1,19 +1,20 @@
 package ly.secore.compute.DeviceManagementTool.GUI;
 
+import java.awt.Cursor;
 import javax.swing.JFrame;
 import javax.swing.JSplitPane;
-import ly.secore.compute.Device;
-import ly.secore.compute.DeviceManagementTool.Application;
+import javax.swing.SwingUtilities;
+import ly.secore.compute.DeviceManagementTool.Event.EventBus;
 
 public class MainWindow extends JFrame {
     private Sidebar sidebar;
 
-    public MainWindow(Application application) {
-        JFrame frame = new JFrame("compute secore.ly® Device Management Tool");
+    public MainWindow(EventBus eventBus) {
+        super("compute secore.ly® Device Management Tool");
 
-        frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
 
-        sidebar = new Sidebar(application);
+        sidebar = new Sidebar(eventBus);
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, sidebar, new LifecycleInformationPanel());
         split.setResizeWeight(0);               // keep right side size when resizing
         split.setContinuousLayout(true);        // smoother dragging
@@ -23,22 +24,25 @@ public class MainWindow extends JFrame {
         // Initial divider location equals sidebar preferred width
         split.setDividerLocation(sidebar.getPreferredSize().width);
 
-        frame.add(split);
-        frame.pack();
-        frame.setLocationRelativeTo(null);
-        frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-        frame.setVisible(true);
+        add(split);
+        pack();
+        setLocationRelativeTo(null);
+        setExtendedState(JFrame.MAXIMIZED_BOTH);
     }
 
-    public void setManufacturingInfo(Device.ManufacturingInfo manufacturingInfo) {
-        sidebar.setManufacturingInfo(manufacturingInfo);
+    public void signalBusy() {
+        if (SwingUtilities.isEventDispatchThread()) {
+            sidebar.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        } else {
+            SwingUtilities.invokeLater(() -> sidebar.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)));
+        }
     }
 
-    public void setIncarnationInfo(Device.ReincarnationInfo reincarnationInfo) {
-        sidebar.setIncarnationInfo(reincarnationInfo);
-    }
-
-    public void setDDM885Info(Device.DDM885Info ddm885Info) {
-        sidebar.setDDM885Info(ddm885Info);
+    public void signalReady() {
+        if (SwingUtilities.isEventDispatchThread()) {
+            sidebar.setCursor(Cursor.getDefaultCursor());
+        } else {
+            SwingUtilities.invokeLater(() -> sidebar.setCursor(Cursor.getDefaultCursor()));
+        }
     }
 }
