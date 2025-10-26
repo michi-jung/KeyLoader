@@ -1,12 +1,11 @@
 package ly.secore.compute.DeviceManagementTool.GUI;
 
+import java.time.format.DateTimeFormatter;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-
-import java.time.format.DateTimeFormatter;
 import ly.secore.compute.Device;
 import net.miginfocom.swing.MigLayout;
 

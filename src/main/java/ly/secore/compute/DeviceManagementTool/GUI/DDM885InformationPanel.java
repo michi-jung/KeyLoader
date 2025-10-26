@@ -20,7 +20,7 @@ public class DDM885InformationPanel extends JPanel {
         initComponents();
     }
 
-    public void setIncarnationInfo(Device.DDM885Info ddm885Info)
+    public void setDDM885Info(Device.DDM885Info ddm885Info)
     {
         orderIdLabel.setText(String.format("%d", ddm885Info.orderId));
         productKeyLabel.setText(ddm885Info.productKey);

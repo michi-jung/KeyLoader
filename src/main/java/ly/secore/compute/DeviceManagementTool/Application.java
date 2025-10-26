@@ -1,93 +1,87 @@
 package ly.secore.compute.DeviceManagementTool;
 
 import com.formdev.flatlaf.FlatLightLaf;
-import java.io.InputStream;
-import java.util.List;
-
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.EventListener;
+import java.util.EventObject;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.swing.SwingUtilities;
-import javax.swing.JFrame;
-
 import ly.secore.compute.Device;
-import ly.secore.compute.DeviceManagementTool.DataModel.JsonReader;
-import ly.secore.compute.DeviceManagementTool.DataModel.ProductDescriptor;
-import ly.secore.compute.DeviceManagementTool.GUI.DDM885InformationPanel;
-import ly.secore.compute.DeviceManagementTool.GUI.IncarnationInformationPanel;
-import ly.secore.compute.DeviceManagementTool.GUI.ManufacturingInformationPanel;
-import ly.secore.compute.DeviceManagementTool.GUI.ProductDescriptorPanel;
-import net.miginfocom.swing.MigLayout;
+import ly.secore.compute.DeviceManagementTool.GUI.MainWindow;
 
 /**
  * Main application class for displaying manufacturing and incarnation information.
  */
 
-public class Application {
-  public static void main(String[] args) {
-    if (args.length < 1) {
-      System.err.println("Usage: java -jar KeyLoader.jar <path_to_device>");
-      System.exit(1);
+public class Application implements EventListener {
+
+    private MainWindow mainWindow;
+    private Device computeDevice;
+
+    public Application() {
+        mainWindow = new MainWindow(this);
     }
 
-    try (Device computeDevice = new Device(args[0]))
+    public void actionRequested(EventObject requestEvent)
     {
-        Device.ManufacturingInfo mfgInfo;
-        Device.ReincarnationInfo incInfo;
-        Device.DDM885Info ddm885Info;
-        final ProductDescriptor productDescriptor;
+        try {
+            if (requestEvent instanceof ConnectToDeviceRequested) {
+                ConnectToDeviceRequested connectRequest = (ConnectToDeviceRequested) requestEvent;
+                Path uartPath = connectRequest.getUartPath();
 
-        try (InputStream jsonInputStream = Application.class.getResourceAsStream("products.json");) {
-            List<ProductDescriptor> productDescriptors = JsonReader.getProductDescriptors(jsonInputStream);
+                computeDevice = new Device(uartPath.toString());
+                computeDevice.openServiceSession();
 
-            if (productDescriptors.isEmpty()) {
-                throw new RuntimeException("No product descriptors found in JSON file: " + args[1]);
+                mainWindow.setManufacturingInfo(computeDevice.getManufacturingInfo());
+                mainWindow.setIncarnationInfo(computeDevice.getReincarnationInfo());
+                mainWindow.setDDM885Info(computeDevice.getDDM885Info());
             }
-
-            productDescriptor = productDescriptors.get(0);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to read JSON file: " + args[1], e);
+            else {
+                throw new RuntimeException(
+                    "actionRequested() failed",
+                    new IllegalArgumentException("Unknown request event: " + requestEvent));
+            }
         }
+        catch (Exception e) {
+            throw new RuntimeException("Failed to process action request", e);
+        }
+    }
 
+    public Path[] getUartPaths() {
+        try (Stream<Path> stream = Files.find(Paths.get("/dev"),
+                                              1,
+                                              (path, attrs) -> {
+                                                  return path.toString().startsWith("/dev/ttyDDM-");
+                                              })) {
+            return stream.collect(Collectors.toList()).toArray(new Path[0]);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to obtain list of /dev/ttyDDM-* devices", e);
+        }
+    }
+
+    public static void main(String[] args) {
         FlatLightLaf.setup();
 
-        // Create and display the manufacturing information panel
-        ManufacturingInformationPanel manufacturingInfoPanel = new ManufacturingInformationPanel();
-        IncarnationInformationPanel incarnationInfoPanel = new IncarnationInformationPanel();
-        DDM885InformationPanel ddm885InfoPanel = new DDM885InformationPanel();
-        ProductDescriptorPanel productDescriptorPanel = new ProductDescriptorPanel();
-
-        JFrame frame = new JFrame("compute secore.ly Device Management Tool");
-
         SwingUtilities.invokeLater(() -> {
-            frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
-            frame.setLayout(new MigLayout("wrap 1", "[grow]", "[]10[]"));
-            frame.add(manufacturingInfoPanel, "growx");
-            frame.add(incarnationInfoPanel, "growx");
-            frame.add(ddm885InfoPanel, "growx");
-            frame.add(productDescriptorPanel, "growx");
-            frame.pack();
-            frame.setLocationRelativeTo(null);
-            frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
-            frame.setVisible(true);
-        });
-
-        computeDevice.openServiceSession();
-
-        mfgInfo = computeDevice.getManufacturingInfo();
-        incInfo = computeDevice.getReincarnationInfo();
-        ddm885Info = computeDevice.getDDM885Info();
-
-        computeDevice.closeServiceSession();
-
-        SwingUtilities.invokeLater(() -> {
-            manufacturingInfoPanel.setManufacturingInfo(mfgInfo);
-            incarnationInfoPanel.setIncarnationInfo(incInfo);
-            ddm885InfoPanel.setIncarnationInfo(ddm885Info);
-            productDescriptorPanel.setProductDescriptor(productDescriptor);
-            frame.setLocationRelativeTo(null);
+            new Application();
         });
     }
-    catch (Exception e)
-    {
-        e.printStackTrace(System.out);
+
+    public static class ConnectToDeviceRequested extends EventObject {
+        private static final long serialVersionUID = 1L;
+        private final Path uartPath;
+
+        public ConnectToDeviceRequested(Object source, Path uartPath) {
+            super(source);
+            this.uartPath = uartPath;
+        }
+
+        public Path getUartPath() {
+            return uartPath;
+        }
     }
-  }
 }
