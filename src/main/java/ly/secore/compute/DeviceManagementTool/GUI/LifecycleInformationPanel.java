@@ -43,7 +43,9 @@ public class LifecycleInformationPanel extends JPanel implements Listener {
 
                 if (rects.getLength() > 0) {
                     Element rect = (Element)rects.item(0);
-                    rect.setAttributeNS(null, "fill", "#e6e6e6");
+                    String style = rect.getAttribute("style");
+                    style = style.replaceAll("fill:[^;]*", "fill:#e6e6e6");
+                    rect.setAttributeNS(null, "style", style);
                 }
             });
         } else {
