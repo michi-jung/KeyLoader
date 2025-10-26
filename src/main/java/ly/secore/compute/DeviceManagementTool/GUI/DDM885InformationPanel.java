@@ -13,7 +13,9 @@ public class DDM885InformationPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 
     private JLabel productKeyLabel;
+    private JLabel productKeyValue;
     private JLabel orderIdLabel;
+    private JLabel orderIdValue;
 
     public DDM885InformationPanel()
     {
@@ -23,37 +25,43 @@ public class DDM885InformationPanel extends JPanel {
     public void setDDM885Info(Device.DDM885Info ddm885Info)
     {
         if (ddm885Info == null) {
-            productKeyLabel.setText("N/A");
-            orderIdLabel.setText("N/A");
-            return;
+            productKeyValue.setText("N/A");
+            orderIdValue.setText("N/A");
         } else {
-            orderIdLabel.setText(String.format("%d", ddm885Info.orderId));
-            productKeyLabel.setText(ddm885Info.productKey);
+            orderIdValue.setText(String.format("%d", ddm885Info.orderId));
+            productKeyValue.setText(ddm885Info.productKey);
         }
 
         SwingUtilities.windowForComponent(this).pack();
     }
 
-    private void initComponents() {
-        JLabel tempLabel;
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        productKeyLabel.setEnabled(enabled);
+        productKeyValue.setEnabled(enabled);
+        orderIdLabel.setEnabled(enabled);
+        orderIdValue.setEnabled(enabled);
+    }
 
+    private void initComponents() {
         setBorder(BorderFactory.createTitledBorder(
                   BorderFactory.createEtchedBorder(), "DDM 885 Information"));
 
         setLayout(new MigLayout("insets 10", "[grow]10[grow,fill]"));
 
-        tempLabel = new JLabel("Product Key");
-        tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        this.add(tempLabel, "growx");
+        productKeyLabel = new JLabel("Product Key");
+        productKeyLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        this.add(productKeyLabel, "growx");
 
-        productKeyLabel= new JLabel("N/A");
-        this.add(productKeyLabel, "wrap,growx");
+        productKeyValue = new JLabel("N/A");
+        this.add(productKeyValue, "wrap,growx");
 
-        tempLabel = new JLabel("Order ID");
-        tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        this.add(tempLabel, "growx");
+        orderIdLabel = new JLabel("Order ID");
+        orderIdLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        this.add(orderIdLabel, "growx");
 
-        orderIdLabel = new JLabel("N/A");
-        this.add(orderIdLabel, "wrap,growx");
+        orderIdValue = new JLabel("N/A");
+        this.add(orderIdValue, "wrap,growx");
     }
 }

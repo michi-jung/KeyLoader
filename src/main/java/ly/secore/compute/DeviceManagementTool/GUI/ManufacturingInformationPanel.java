@@ -15,11 +15,17 @@ public class ManufacturingInformationPanel extends JPanel {
     private static final long serialVersionUID = 1L;
 
     private JLabel deviceClassLabel;
+    private JLabel deviceClassValue;
     private JLabel deviceTypeLabel;
+    private JLabel deviceTypeValue;
     private JLabel engineeringChangeLevelLabel;
+    private JLabel engineeringChangeLevelValue;
     private JLabel serialNumberLabel;
+    private JLabel serialNumberValue;
     private JLabel macAddressLabel;
+    private JLabel macAddressValue;
     private JLabel timeOfProductionLabel;
+    private JLabel timeOfProductionValue;
 
     public ManufacturingInformationPanel()
     {
@@ -29,81 +35,96 @@ public class ManufacturingInformationPanel extends JPanel {
     public void setManufacturingInfo(Device.ManufacturingInfo manufacturingInfo)
     {
         if (manufacturingInfo == null) {
-            deviceClassLabel.setText("N/A");
-            deviceTypeLabel.setText("N/A");
-            engineeringChangeLevelLabel.setText("N/A");
-            serialNumberLabel.setText("N/A");
-            macAddressLabel.setText("N/A");
-            timeOfProductionLabel.setText("N/A");
+            deviceClassValue.setText("N/A");
+            deviceTypeValue.setText("N/A");
+            engineeringChangeLevelValue.setText("N/A");
+            serialNumberValue.setText("N/A");
+            macAddressValue.setText("N/A");
+            timeOfProductionValue.setText("N/A");
         } else {
-            deviceClassLabel.setText(manufacturingInfo.getDeviceClassName() +
+            deviceClassValue.setText(manufacturingInfo.getDeviceClassName() +
                                         " (" + manufacturingInfo.getDeviceClassUUID() + ")");
 
-            deviceTypeLabel.setText(manufacturingInfo.getDeviceTypeName() +
+            deviceTypeValue.setText(manufacturingInfo.getDeviceTypeName() +
                                     " (" + manufacturingInfo.getDeviceType() + ")");
-            engineeringChangeLevelLabel.setText(
+            engineeringChangeLevelValue.setText(
                 String.valueOf(manufacturingInfo.getEngineeringChangeLevel()));
 
-            serialNumberLabel.setText(String.format("%010d", manufacturingInfo.getSerialNumber()));
+            serialNumberValue.setText(String.format("%010d", manufacturingInfo.getSerialNumber()));
 
-            macAddressLabel.setText(HexFormat.ofDelimiter(":").withUpperCase()
+            macAddressValue.setText(HexFormat.ofDelimiter(":").withUpperCase()
                 .formatHex(manufacturingInfo.getMACAddress()));
 
-            timeOfProductionLabel.setText(manufacturingInfo.getTimeOfProduction()
+            timeOfProductionValue.setText(manufacturingInfo.getTimeOfProduction()
                 .format(DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.FULL)));
         }
 
         SwingUtilities.windowForComponent(this).pack();
     }
 
-    private void initComponents() {
-        JLabel tempLabel;
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        deviceClassLabel.setEnabled(enabled);
+        deviceClassValue.setEnabled(enabled);
+        deviceTypeLabel.setEnabled(enabled);
+        deviceTypeValue.setEnabled(enabled);
+        engineeringChangeLevelLabel.setEnabled(enabled);
+        engineeringChangeLevelValue.setEnabled(enabled);
+        serialNumberLabel.setEnabled(enabled);
+        serialNumberValue.setEnabled(enabled);
+        macAddressLabel.setEnabled(enabled);
+        macAddressValue.setEnabled(enabled);
+        timeOfProductionLabel.setEnabled(enabled);
+        timeOfProductionValue.setEnabled(enabled);
+    }
 
+    private void initComponents() {
         setLayout(new MigLayout("insets 10", "[grow]10[grow,fill]"));
 
         setBorder(BorderFactory.createTitledBorder(
             BorderFactory.createEtchedBorder(), "Manufacturing Information"));
 
-        tempLabel = new JLabel("Device Class");
-        tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        this.add(tempLabel, "growx");
+        deviceClassLabel = new JLabel("Device Class");
+        deviceClassLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        this.add(deviceClassLabel, "growx");
 
-        deviceClassLabel= new JLabel("N/A");
-        this.add(deviceClassLabel, "wrap,growx");
+        deviceClassValue= new JLabel("N/A");
+        this.add(deviceClassValue, "wrap,growx");
 
-        tempLabel = new JLabel("Device Type");
-        tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        this.add(tempLabel, "growx");
+        deviceTypeLabel = new JLabel("Device Type");
+        deviceTypeLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        this.add(deviceTypeLabel, "growx");
 
-        deviceTypeLabel = new JLabel("N/A");
-        this.add(deviceTypeLabel, "wrap,growx");
+        deviceTypeValue = new JLabel("N/A");
+        this.add(deviceTypeValue, "wrap,growx");
 
-        tempLabel = new JLabel("Engineering Change Level");
-        tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        this.add(tempLabel, "growx");
+        engineeringChangeLevelLabel = new JLabel("Engineering Change Level");
+        engineeringChangeLevelLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        this.add(engineeringChangeLevelLabel, "growx");
 
-        engineeringChangeLevelLabel = new JLabel("");
-        this.add(engineeringChangeLevelLabel, "wrap,growx");
+        engineeringChangeLevelValue = new JLabel("");
+        this.add(engineeringChangeLevelValue, "wrap,growx");
 
-        tempLabel = new JLabel("Serial Number");
-        tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        this.add(tempLabel, "growx");
+        serialNumberLabel = new JLabel("Serial Number");
+        serialNumberLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        this.add(serialNumberLabel, "growx");
 
-        serialNumberLabel = new JLabel("N/A");
-        this.add(serialNumberLabel, "wrap,growx");
+        serialNumberValue = new JLabel("N/A");
+        this.add(serialNumberValue, "wrap,growx");
 
-        tempLabel = new JLabel("MAC Address");
-        tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        this.add(tempLabel, "growx");
+        macAddressLabel = new JLabel("MAC Address");
+        macAddressLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        this.add(macAddressLabel, "growx");
 
-        macAddressLabel = new JLabel("N/A");
-        this.add(macAddressLabel, "wrap,growx");
+        macAddressValue = new JLabel("N/A");
+        this.add(macAddressValue, "wrap,growx");
 
-        tempLabel = new JLabel("Time of Production");
-        tempLabel.setHorizontalAlignment(SwingConstants.RIGHT);
-        this.add(tempLabel, "growx");
+        timeOfProductionLabel = new JLabel("Time of Production");
+        timeOfProductionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        this.add(timeOfProductionLabel, "growx");
 
-        timeOfProductionLabel = new JLabel("N/A");
-        this.add(timeOfProductionLabel, "wrap,growx");
+        timeOfProductionValue = new JLabel("N/A");
+        this.add(timeOfProductionValue, "wrap,growx");
     }
 }

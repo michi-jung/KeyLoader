@@ -33,6 +33,7 @@ public class Application implements Listener {
         eventBus.addListener(this);
         mainWindow = new MainWindow(eventBus);
         eventBus.updateUartPaths(this, getUartPaths());
+        eventBus.updateDeviceInformation(this, deviceInformation);
         mainWindow.setVisible(true);
     }
 
