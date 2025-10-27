@@ -47,22 +47,37 @@ public class Application implements Listener {
                 mainWindow.signalBusy();
 
                 computeDevice = new Device(uartPath.toString());
-                computeDevice.openServiceSession();
 
-                deviceInformation.setDeviceConnected(true);
-                deviceInformation.setManufacturingInfo(computeDevice.getManufacturingInfo());
-                deviceInformation.setReincarnationInfo(computeDevice.getReincarnationInfo());
-                deviceInformation.setDDM885Info(computeDevice.getDDM885Info());
-                deviceInformation.setLifecycleInfo(computeDevice.getLifecycleInfo());
+                if (computeDevice.isRomBootloaderActive()) {
+                    deviceInformation.setDeviceConnected(true);
+                    deviceInformation.setManufacturingInfo(null);
+                    deviceInformation.setReincarnationInfo(null);
+                    deviceInformation.setDDM885Info(null);
+                    deviceInformation.setLifecycleInfo(new Device.LifecycleInfo(
+                        Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURED));
+                } else {
+                    computeDevice.openServiceSession();
+
+                    deviceInformation.setDeviceConnected(true);
+                    deviceInformation.setManufacturingInfo(computeDevice.getManufacturingInfo());
+                    deviceInformation.setReincarnationInfo(computeDevice.getReincarnationInfo());
+                    deviceInformation.setDDM885Info(computeDevice.getDDM885Info());
+                    deviceInformation.setLifecycleInfo(computeDevice.getLifecycleInfo());
+                }
 
                 eventBus.updateDeviceInformation(this, deviceInformation);
 
                 mainWindow.signalReady();
             } else if (requestEvent instanceof DisconnectFromDeviceRequested) {
-                if (computeDevice != null) {
+                if (computeDevice != null &&
+                    deviceInformation.getLifecycleInfo().state !=
+                        Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURED)
+                {
                     computeDevice.closeServiceSession();
-                    computeDevice = null;
                 }
+
+                computeDevice.close();
+                computeDevice = null;
 
                 deviceInformation.setDeviceConnected(false);
                 deviceInformation.setManufacturingInfo(null);

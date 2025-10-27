@@ -24,7 +24,7 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
     private DeviceInformation deviceInformation = new DeviceInformation();
     private JComboBox<Path> uartComboBox = new JComboBox<>();
     private JButton connectButton = new JButton("Connect to Device");
-    private JButton personalizeButton = new JButton("Flash, Test and Personalize");
+    private JButton personalizeButton = new JButton("Factory Flash, Test and Personalize");
     private JButton factoryFlashButton = new JButton("Factory Flash");
     private JButton firmwareUpdateButton = new JButton("Firmware Update");
     private JButton applicationUpdateButton = new JButton("Application Update");

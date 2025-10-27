@@ -38,14 +38,24 @@ public class LifecycleInformationPanel extends JPanel implements Listener {
             svgCanvas.setVisible(true);
 
             svgCanvas.getUpdateManager().getUpdateRunnableQueue().invokeLater(() -> {
-                NodeList rects = getLifecycleStateGroup(lifecycleInfo.state)
-                                     .getElementsByTagName("rect");
+                NodeList elems;
 
-                if (rects.getLength() > 0) {
-                    Element rect = (Element)rects.item(0);
+                elems = getLifecycleStateGroup(lifecycleInfo.state).getElementsByTagName("rect");
+
+                if (elems.getLength() > 0) {
+                    Element rect = (Element)elems.item(0);
                     String style = rect.getAttribute("style");
-                    style = style.replaceAll("fill:[^;]*", "fill:#e6e6e6");
+                    style = style.replaceAll("fill:[^;]*", "fill:#d0d0d0");
                     rect.setAttributeNS(null, "style", style);
+                }
+
+                elems = getLifecycleStateGroup(lifecycleInfo.state).getElementsByTagName("circle");
+
+                if (elems.getLength() > 0) {
+                    Element circle = (Element)elems.item(0);
+                    String style = circle.getAttribute("style");
+                    style = style.replaceAll("fill:[^;]*", "fill:#d0d0d0");
+                    circle.setAttributeNS(null, "style", style);
                 }
             });
         } else {

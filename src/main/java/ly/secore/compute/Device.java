@@ -55,6 +55,11 @@ public class Device implements AutoCloseable {
 
     public LifecycleInfo() { super(); }
 
+    public LifecycleInfo(int state) {
+      super();
+      this.state = state;
+    }
+
     public LifecycleInfo(Pointer p) {
       super(p);
       read();
@@ -364,6 +369,14 @@ public class Device implements AutoCloseable {
     }
   }
 
+  public boolean isRomBootloaderActive() throws IOException {
+    int ret;
+
+    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_ping_rom_bootloader(compute_device);
+
+    return ret == 0;
+  }
+
   public void openServiceSession() throws IOException {
     int ret;
 
@@ -649,6 +662,8 @@ public class Device implements AutoCloseable {
     void compute_device_delete(Pointer compute_device);
 
     int compute_device_proxy_tty_reset_cb(Pointer compute_device);
+
+    int compute_device_ping_rom_bootloader(Pointer compute_device);
 
     int compute_device_open_service_session(Pointer compute_device);
 
