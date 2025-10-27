@@ -58,7 +58,8 @@ public class DDM885InformationPanel extends JPanel implements Listener {
 
     private void initComponents() {
         setBorder(BorderFactory.createTitledBorder(
-                  BorderFactory.createEtchedBorder(), "DDM 885 Information"));
+                  BorderFactory.createEtchedBorder(),
+                  "DDM 885 Specific Manufacturing Information"));
 
         setLayout(new MigLayout("insets 10", "[grow]10[grow,fill]"));
 

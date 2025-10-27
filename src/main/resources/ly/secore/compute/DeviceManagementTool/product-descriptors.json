@@ -1,14 +1,19 @@
 {
   "product_descriptors" : [
     {
-      "product_key"       : "885-RD110000000/12",
-      "type"              : "885-RD11000xx00/12",
-      "personality"       : "00"
-    },
-    {
       "product_key"       : "885-RD100000000/12",
       "type"              : "885-RD10000xx00/12",
-      "personality"       : "00"
+      "personality"       : "885-RDxxxxx00xx/xx"
+    },
+    {
+      "product_key"       : "885-RD110000000/12",
+      "type"              : "885-RD11000xx00/12",
+      "personality"       : "885-RDxxxxx00xx/xx"
+    },
+    {
+      "product_key"       : "885-HD010000000/12",
+      "type"              : "885-HD01000xx00/12",
+      "personality"       : "885-HDxxxxx00xx/xx"
     }
   ],
   "device_type_descriptors" : [
@@ -29,18 +34,37 @@
       "firmware_version"  : "11.101.153",
       "description"       : "DDM 885-R without Display (Development)",
       "update_time"       : "2025-10-23T19:42:30Z"
+    },
+    {
+      "type"              : "885-HD01000xx00/12",
+      "device_class"      : "7b345c53-df4c-5655-b7d3-c78b7bca457f",
+      "device_type_id"    : "16",
+      "ecl"               : "0",
+      "firmware_version"  : "11.101.153",
+      "description"       : "DDM 885-H (Development)",
+      "update_time"       : "2025-10-27T10:02:30Z"
     }
   ],
   "device_personality_descriptors" : [
     {
-      "personality"       : "00",
-      "description"       : "Development Device (SDK)",
+      "personality"       : "885-RDxxxxx00xx/xx",
+      "description"       : "Development POI (SDK)",
       "operating_mode"    : 0,
       "variant"           : 0,
       "master_key"        : "000DEB06",
       "firmware_version"  : "11.101.153",
       "application_id"    : 0,
-      "update_time"       : "2025-10-23T19:43:30Z"
+      "update_time"       : "2025-10-27T10:14:30Z"
+    },
+    {
+      "personality"       : "885-HDxxxxx00xx/xx",
+      "description"       : "Development HSM (SDK)",
+      "operating_mode"    : 0,
+      "variant"           : 1,
+      "master_key"        : "000DEB06",
+      "firmware_version"  : "11.101.153",
+      "application_id"    : 0,
+      "update_time"       : "2025-10-27T10:14:30Z"
     }
   ],
   "firmware_descriptors" : [

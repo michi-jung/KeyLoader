@@ -27,7 +27,7 @@ public class VitalProductDataPanel extends JPanel {
                   javax.swing.BorderFactory.createEtchedBorder(), "Vital Product Data"));
 
         add(new ManufacturingInformationPanel(eventBus), gbc);
-        add(new IncarnationInformationPanel(eventBus), gbc);
         add(new DDM885InformationPanel(eventBus), gbc);
+        add(new IncarnationInformationPanel(eventBus), gbc);
     }
 }

@@ -1,5 +1,7 @@
 package ly.secore.compute.DeviceManagementTool.GUI;
 
+import java.awt.Dimension;
+import java.util.EventObject;
 import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -7,20 +9,22 @@ import javax.swing.JTree;
 import javax.swing.SwingUtilities;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
-
 import ly.secore.compute.DeviceManagementTool.DataModel.ApplicationDescriptor;
 import ly.secore.compute.DeviceManagementTool.DataModel.DevicePersonalityDescriptor;
 import ly.secore.compute.DeviceManagementTool.DataModel.DeviceTypeDescriptor;
 import ly.secore.compute.DeviceManagementTool.DataModel.FirmwareDescriptor;
 import ly.secore.compute.DeviceManagementTool.DataModel.ProductDescriptor;
+import ly.secore.compute.DeviceManagementTool.Event.EventBus;
+import ly.secore.compute.DeviceManagementTool.Event.Listener;
+import ly.secore.compute.DeviceManagementTool.Event.SelectProductDescriptorRequested;
 import net.miginfocom.swing.MigLayout;
 
-public class ProductDescriptorPanel extends JPanel {
+public class ProductDescriptorPanel extends JPanel implements Listener {
     private static class TreeModelBuilder {
-    
+
         public static DefaultMutableTreeNode build(String label, FirmwareDescriptor firmwareDescriptor) {
             DefaultMutableTreeNode root = new DefaultMutableTreeNode(label);
-        
+
             root.add(new DefaultMutableTreeNode(String.format("<html><b>Version</b> %s</html>", firmwareDescriptor.getVersion()), false));
             root.add(new DefaultMutableTreeNode(String.format("<html><b>File Name of Firmware Image</b> %s</html>", firmwareDescriptor.getFileName()), false));
             root.add(new DefaultMutableTreeNode(String.format("<html><b>File Name of Initial Firmware Image</b> %s</html>", firmwareDescriptor.getInitialFileName()), false));
@@ -30,7 +34,7 @@ public class ProductDescriptorPanel extends JPanel {
 
         public static DefaultMutableTreeNode build(String label, ApplicationDescriptor applicationDescriptor) {
             DefaultMutableTreeNode root = new DefaultMutableTreeNode(label);
-        
+
             root.add(new DefaultMutableTreeNode(String.format("<html><b>Description</b> %s</html>", applicationDescriptor.getDescription()), false));
             root.add(new DefaultMutableTreeNode(String.format("<html><b>Application Class</b> %s</html>", applicationDescriptor.getApplicationClass()), false));
             root.add(new DefaultMutableTreeNode(String.format("<html><b>Version</b> %s</html>", applicationDescriptor.getVersion()), false));
@@ -42,7 +46,7 @@ public class ProductDescriptorPanel extends JPanel {
 
         public static DefaultMutableTreeNode build(String label, DeviceTypeDescriptor deviceTypeDescriptor) {
             DefaultMutableTreeNode root = new DefaultMutableTreeNode(label);
-            
+
             root.add(new DefaultMutableTreeNode(String.format("<html><b>Type</b> %s</html>", deviceTypeDescriptor.getType()), false));
             root.add(new DefaultMutableTreeNode(String.format("<html><b>Description</b> %s</html>", deviceTypeDescriptor.getDescription()), false));
             root.add(new DefaultMutableTreeNode(String.format("<html><b>Device Class</b> %s</html>", deviceTypeDescriptor.getDeviceClass()), false));
@@ -55,7 +59,7 @@ public class ProductDescriptorPanel extends JPanel {
 
         public static DefaultMutableTreeNode build(String label, DevicePersonalityDescriptor devicePersonalityDescriptor) {
             DefaultMutableTreeNode root = new DefaultMutableTreeNode(label);
-            
+
             root.add(new DefaultMutableTreeNode(String.format("<html><b>Personality</b> %s</html>", devicePersonalityDescriptor.getPersonality()), false));
             root.add(new DefaultMutableTreeNode(String.format("<html><b>Description</b> %s</html>", devicePersonalityDescriptor.getDescription()), false));
             root.add(new DefaultMutableTreeNode(String.format("<html><b>Operating Mode</b> %d</html>", devicePersonalityDescriptor.getOperatingMode()), false));
@@ -67,33 +71,54 @@ public class ProductDescriptorPanel extends JPanel {
             return root;
         }
 
-        public static DefaultMutableTreeNode build(String label, ProductDescriptor productDescriptor) {
+        public static DefaultMutableTreeNode build(String label,
+                                                   ProductDescriptor productDescriptor)
+        {
             DefaultMutableTreeNode root = new DefaultMutableTreeNode(label);
-            
-            root.add(new DefaultMutableTreeNode(String.format("<html><b>Product Key</b> %s</html>", productDescriptor.getProductKey()), false));
-            root.add(build("<html><b>Device Type Descriptor</b></html>", productDescriptor.getDeviceTypeDescriptor()));
-            root.add(build("<html><b>Device Personality Descriptor</b></html>", productDescriptor.getDevicePersonalityDescriptor()));
+
+            if (productDescriptor != null) {
+                root.add(new DefaultMutableTreeNode(
+                    String.format("<html><b>Product Key</b> %s</html>",
+                        productDescriptor.getProductKey()), false));
+                root.add(build("<html><b>Device Type Descriptor</b></html>",
+                    productDescriptor.getDeviceTypeDescriptor()));
+                root.add(build("<html><b>Device Personality Descriptor</b></html>",
+                    productDescriptor.getDevicePersonalityDescriptor()));
+            }
 
             return root;
         }
     }
-    
+
     private JTree productDescriptorTree;
 
-    public ProductDescriptorPanel() {
+    public ProductDescriptorPanel(EventBus eventBus) {
+        eventBus.addListener(this);
         initComponents();
     }
-    
-    public void setProductDescriptor(ProductDescriptor productDescriptor) {
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+    }
+
+    private void setProductDescriptor(ProductDescriptor productDescriptor) {
         DefaultTreeModel model = (DefaultTreeModel)productDescriptorTree.getModel();
         model.setRoot(TreeModelBuilder.build("Product Descriptor", productDescriptor));
         SwingUtilities.windowForComponent(this).pack();
     }
 
+    public void actionRequested(EventObject event) {
+        if (event instanceof SelectProductDescriptorRequested) {
+            setProductDescriptor(((SelectProductDescriptorRequested)event).getProductDescriptor());
+        }
+    }
+
     public void initComponents() {
         setLayout(new MigLayout("insets 10", "[grow]"));
+        setMinimumSize(new Dimension(200, 200));
         setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createEtchedBorder(), "Product Configuration Tree")); 
+            BorderFactory.createEtchedBorder(), "Product Configuration Tree"));
 
         productDescriptorTree = new JTree(new DefaultTreeModel(null));
         productDescriptorTree.setRootVisible(false);

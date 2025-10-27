@@ -13,7 +13,7 @@
     <Root level="INFO">
       <AppenderRef ref="CONSOLE" level="WARN"/>
     </Root>
-    <Logger name="ly.secore.compute" level="INFO">
+    <Logger name="ly.secore.compute" level="DEBUG">
       <AppenderRef ref="CONSOLE"/>
     </Logger>
   </Loggers>

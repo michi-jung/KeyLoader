@@ -8,7 +8,7 @@ class AppKeyInjection {
     try (KeyLoader keyLoader = new KeyLoader("/usr/local/lib/libcryptok.so", 0);
          Device computeDevice = new Device(args[0]))
     {
-      computeDevice.openServiceSession();
+      computeDevice.openServiceSession(1);
 
       computeDevice.setAppKey(
           keyLoader.getAppKeyKeyblock(

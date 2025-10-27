@@ -369,18 +369,11 @@ public class Device implements AutoCloseable {
     }
   }
 
-  public boolean isRomBootloaderActive() throws IOException {
+  public void openServiceSession(int timeout) throws IOException {
     int ret;
 
-    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_ping_rom_bootloader(compute_device);
-
-    return ret == 0;
-  }
-
-  public void openServiceSession() throws IOException {
-    int ret;
-
-    ret = ComputeDeviceProxyLibrary.INSTANCE.compute_device_open_service_session(compute_device);
+    ret = ComputeDeviceProxyLibrary.INSTANCE
+        .compute_device_open_service_session(compute_device, timeout);
 
     if (ret < 0) {
       throw new IOException("compute_device_open_service_session() failed.");
@@ -663,9 +656,7 @@ public class Device implements AutoCloseable {
 
     int compute_device_proxy_tty_reset_cb(Pointer compute_device);
 
-    int compute_device_ping_rom_bootloader(Pointer compute_device);
-
-    int compute_device_open_service_session(Pointer compute_device);
+    int compute_device_open_service_session(Pointer compute_device, int timeout);
 
     int compute_device_close_service_session(Pointer compute_device);
 
@@ -746,6 +737,8 @@ public class Device implements AutoCloseable {
           byte[] buf = new byte[buffer_size];
 
           bytesRead = image.read(buf);
+
+          System.out.printf("Read %d bytes from image stream\n", bytesRead);
 
           if (bytesRead > 0)
           {

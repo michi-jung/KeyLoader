@@ -8,7 +8,7 @@ class AppUpdate {
   public static void main(String args[]) {
     try (Device computeDevice = new Device(args[0]))
     {
-      computeDevice.openServiceSession();
+      computeDevice.openServiceSession(1);
       computeDevice.applicationUpdate(new FileInputStream(args[1]));
       computeDevice.closeServiceSession();
     }

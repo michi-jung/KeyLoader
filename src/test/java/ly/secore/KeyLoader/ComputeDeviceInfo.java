@@ -12,7 +12,7 @@ class ComputeDeviceInfo {
       Device.ReincarnationInfo incInfo;
       byte[] derivationInfo;
 
-      computeDevice.openServiceSession();
+      computeDevice.openServiceSession(1);
 
       mfgInfo = computeDevice.getManufacturingInfo();
       incInfo = computeDevice.getReincarnationInfo();

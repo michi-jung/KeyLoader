@@ -12,9 +12,10 @@ import javax.swing.JComboBox;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import ly.secore.compute.DeviceManagementTool.DataModel.DeviceInformation;
-import ly.secore.compute.DeviceManagementTool.Event.Listener;
-import ly.secore.compute.DeviceManagementTool.Event.UpdateDeviceInformationRequested;
 import ly.secore.compute.DeviceManagementTool.Event.EventBus;
+import ly.secore.compute.DeviceManagementTool.Event.Listener;
+import ly.secore.compute.DeviceManagementTool.Event.SelectProductDescriptorRequested;
+import ly.secore.compute.DeviceManagementTool.Event.UpdateDeviceInformationRequested;
 import ly.secore.compute.DeviceManagementTool.Event.UpdateUartPathsRequested;
 import ly.secore.compute.Device;
 
@@ -24,7 +25,7 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
     private DeviceInformation deviceInformation = new DeviceInformation();
     private JComboBox<Path> uartComboBox = new JComboBox<>();
     private JButton connectButton = new JButton("Connect to Device");
-    private JButton personalizeButton = new JButton("Factory Flash, Test and Personalize");
+    private ProductSelectorPanel productSelectorPanel;;
     private JButton factoryFlashButton = new JButton("Factory Flash");
     private JButton firmwareUpdateButton = new JButton("Firmware Update");
     private JButton applicationUpdateButton = new JButton("Application Update");
@@ -37,6 +38,10 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
 
         vitalProductDataPanel = new VitalProductDataPanel(eventBus);
         connectButton.addActionListener(this);
+        factoryFlashButton.addActionListener(this);
+        firmwareUpdateButton.addActionListener(this);
+        applicationUpdateButton.addActionListener(this);
+        productSelectorPanel = new ProductSelectorPanel(eventBus);
         eventBus.addListener(this);
 
         setLayout(new GridBagLayout());
@@ -49,14 +54,14 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
 
         add(uartComboBox, gbc);
         add(connectButton, gbc);
-        add(personalizeButton, gbc);
+        add(productSelectorPanel, gbc);
         add(factoryFlashButton, gbc);
         add(firmwareUpdateButton, gbc);
         add(applicationUpdateButton, gbc);
         add(vitalProductDataPanel, gbc);
 
-        gbc.weighty = 1.0;
-        add(new JPanel(), gbc);
+        gbc.weighty = 1.0;   // allow vertical expansion
+        add(new JPanel(), gbc); // empty panel to fill remaining space
     }
 
     public void actionPerformed(ActionEvent e) {
@@ -66,6 +71,17 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
             } else {
                 eventBus.connectToDevice(e.getSource(), (Path)uartComboBox.getSelectedItem());
             }
+        } else if (e.getSource() == factoryFlashButton) {
+            eventBus.factoryFlash(e.getSource(),
+                                  productSelectorPanel
+                                      .getSelectedProductDescriptor()
+                                      .getDeviceTypeDescriptor()
+                                      .getFirmwareDescriptor()
+                                      .getInitialFileName());
+        } else if (e.getSource() == firmwareUpdateButton) {
+            System.out.println("Firmware Update button clicked");
+        } else if (e.getSource() == applicationUpdateButton) {
+            System.out.println("Application Update Button clicked");
         }
     }
 
@@ -76,6 +92,17 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
                 uartComboBox.addItem(path);
             }
             SwingUtilities.windowForComponent(this).pack();
+        } else if (requestEvent instanceof SelectProductDescriptorRequested) {
+            if (((SelectProductDescriptorRequested)requestEvent).getProductDescriptor() != null &&
+                deviceInformation.getLifecycleInfo() != null &&
+                deviceInformation.getLifecycleInfo().state ==
+                    Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURED)
+            {
+                factoryFlashButton.setEnabled(true);
+            }
+            else {
+                factoryFlashButton.setEnabled(false);
+            }
         } else if (requestEvent instanceof UpdateDeviceInformationRequested) {
             deviceInformation =
                 ((UpdateDeviceInformationRequested)requestEvent).getDeviceInformation();
@@ -88,7 +115,7 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
                 uartComboBox.setEnabled(true);
             }
 
-            personalizeButton.setEnabled(false);
+            productSelectorPanel.setEnabled(false);
             factoryFlashButton.setEnabled(false);
             firmwareUpdateButton.setEnabled(false);
             applicationUpdateButton.setEnabled(false);
@@ -98,8 +125,9 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
                 switch (deviceInformation.getLifecycleInfo().state)
                 {
                     case Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURED:
-                        personalizeButton.setEnabled(true);
-                        factoryFlashButton.setEnabled(true);
+                        factoryFlashButton.setEnabled(
+                            productSelectorPanel.getSelectedProductDescriptor() != null);
+                        productSelectorPanel.setEnabled(true);
                         break;
                     case Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURING_TEST:
                         firmwareUpdateButton.setEnabled(true);

@@ -13,7 +13,7 @@ class ReincarnationKeyInjection {
       BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
       KeyLoader.SetIncKeyContext ctx;
 
-      computeDevice.openServiceSession();
+      computeDevice.openServiceSession(1);
 
       computeDevice.lock(keyLoader.deriveMfgResetSecret(
                              computeDevice.getMfgResetSecretDerivationInput()));
@@ -23,7 +23,7 @@ class ReincarnationKeyInjection {
       System.out.println("Please power-cycle 885-R and press <enter>");
       bufferRead.readLine();
 
-      computeDevice.openServiceSession();
+      computeDevice.openServiceSession(1);
 
       ctx = keyLoader.setIncKeyStep1(computeDevice.getReincarnationKeyDerivationInfo());
       computeDevice.setIncKeyStep1(ctx);
