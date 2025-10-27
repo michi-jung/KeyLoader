@@ -1,17 +1,21 @@
 package ly.secore.compute.DeviceManagementTool.GUI;
 
+import java.time.format.DateTimeFormatter;
+import java.util.EventObject;
+import java.util.HexFormat;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-import java.time.format.DateTimeFormatter;
-import java.util.HexFormat;
 import ly.secore.compute.Device;
+import ly.secore.compute.DeviceManagementTool.Event.EventBus;
+import ly.secore.compute.DeviceManagementTool.Event.Listener;
+import ly.secore.compute.DeviceManagementTool.Event.UpdateDeviceInformationRequested;
 import net.miginfocom.swing.MigLayout;
 
 
-public class ManufacturingInformationPanel extends JPanel {
+public class ManufacturingInformationPanel extends JPanel implements Listener {
     private static final long serialVersionUID = 1L;
 
     private JLabel deviceClassLabel;
@@ -27,8 +31,9 @@ public class ManufacturingInformationPanel extends JPanel {
     private JLabel timeOfProductionLabel;
     private JLabel timeOfProductionValue;
 
-    public ManufacturingInformationPanel()
+    public ManufacturingInformationPanel(EventBus eventBus)
     {
+        eventBus.addListener(this);
         initComponents();
     }
 
@@ -41,6 +46,7 @@ public class ManufacturingInformationPanel extends JPanel {
             serialNumberValue.setText("N/A");
             macAddressValue.setText("N/A");
             timeOfProductionValue.setText("N/A");
+            setEnabled(false);
         } else {
             deviceClassValue.setText(manufacturingInfo.getDeviceClassName() +
                                         " (" + manufacturingInfo.getDeviceClassUUID() + ")");
@@ -57,9 +63,18 @@ public class ManufacturingInformationPanel extends JPanel {
 
             timeOfProductionValue.setText(manufacturingInfo.getTimeOfProduction()
                 .format(DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.FULL)));
+
+            setEnabled(true);
         }
 
         SwingUtilities.windowForComponent(this).pack();
+    }
+
+    public void actionRequested(EventObject event) {
+        if (event instanceof UpdateDeviceInformationRequested) {
+            UpdateDeviceInformationRequested updateEvent = (UpdateDeviceInformationRequested)event;
+            setManufacturingInfo(updateEvent.getDeviceInformation().getManufacturingInfo());
+        }
     }
 
     @Override

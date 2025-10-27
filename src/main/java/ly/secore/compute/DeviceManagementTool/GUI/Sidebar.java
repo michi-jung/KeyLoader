@@ -16,6 +16,7 @@ import ly.secore.compute.DeviceManagementTool.Event.Listener;
 import ly.secore.compute.DeviceManagementTool.Event.UpdateDeviceInformationRequested;
 import ly.secore.compute.DeviceManagementTool.Event.EventBus;
 import ly.secore.compute.DeviceManagementTool.Event.UpdateUartPathsRequested;
+import ly.secore.compute.Device;
 
 public class Sidebar extends JPanel implements ActionListener, Listener {
     private static final long serialVersionUID = 1L;
@@ -23,15 +24,18 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
     private DeviceInformation deviceInformation = new DeviceInformation();
     private JComboBox<Path> uartComboBox = new JComboBox<>();
     private JButton connectButton = new JButton("Connect to Device");
-    private ManufacturingInformationPanel manufacturingInformationPanel = new ManufacturingInformationPanel();
-    private IncarnationInformationPanel incarnationInformationPanel = new IncarnationInformationPanel();
-    private DDM885InformationPanel ddm885InformationPanel = new DDM885InformationPanel();
+    private JButton personalizeButton = new JButton("Flash, Test and Personalize");
+    private JButton factoryFlashButton = new JButton("Factory Flash");
+    private JButton firmwareUpdateButton = new JButton("Firmware Update");
+    private JButton applicationUpdateButton = new JButton("Application Update");
+    private VitalProductDataPanel vitalProductDataPanel;
 
     public Sidebar(EventBus eventBus) {
         GridBagConstraints gbc = new GridBagConstraints();
 
         this.eventBus = eventBus;
 
+        vitalProductDataPanel = new VitalProductDataPanel(eventBus);
         connectButton.addActionListener(this);
         eventBus.addListener(this);
 
@@ -45,9 +49,11 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
 
         add(uartComboBox, gbc);
         add(connectButton, gbc);
-        add(manufacturingInformationPanel, gbc);
-        add(incarnationInformationPanel, gbc);
-        add(ddm885InformationPanel, gbc);
+        add(personalizeButton, gbc);
+        add(factoryFlashButton, gbc);
+        add(firmwareUpdateButton, gbc);
+        add(applicationUpdateButton, gbc);
+        add(vitalProductDataPanel, gbc);
 
         gbc.weighty = 1.0;
         add(new JPanel(), gbc);
@@ -77,20 +83,42 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
             if (deviceInformation.isDeviceConnected()) {
                 connectButton.setText("Disconnect from Device");
                 uartComboBox.setEnabled(false);
-                manufacturingInformationPanel.setEnabled(true);
-                incarnationInformationPanel.setEnabled(true);
-                ddm885InformationPanel.setEnabled(true);
             } else {
                 connectButton.setText("Connect to Device");
                 uartComboBox.setEnabled(true);
-                manufacturingInformationPanel.setEnabled(false);
-                incarnationInformationPanel.setEnabled(false);
-                ddm885InformationPanel.setEnabled(false);
             }
 
-            manufacturingInformationPanel.setManufacturingInfo(deviceInformation.getManufacturingInfo());
-            incarnationInformationPanel.setIncarnationInfo(deviceInformation.getReincarnationInfo());
-            ddm885InformationPanel.setDDM885Info(deviceInformation.getDDM885Info());
+            personalizeButton.setEnabled(false);
+            factoryFlashButton.setEnabled(false);
+            firmwareUpdateButton.setEnabled(false);
+            applicationUpdateButton.setEnabled(false);
+
+            if (deviceInformation.getLifecycleInfo() != null)
+            {
+                switch (deviceInformation.getLifecycleInfo().state)
+                {
+                    case Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURED:
+                        personalizeButton.setEnabled(true);
+                        factoryFlashButton.setEnabled(true);
+                        break;
+                    case Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURING_TEST:
+                        firmwareUpdateButton.setEnabled(true);
+                        break;
+                    case Device.LifecycleInfo.LIFECYCLE_STATE_PERSONALIZATION:
+                        firmwareUpdateButton.setEnabled(true);
+                        break;
+                    case Device.LifecycleInfo.LIFECYCLE_STATE_OPERATION:
+                        firmwareUpdateButton.setEnabled(true);
+                        applicationUpdateButton.setEnabled(true);
+                        break;
+                    case Device.LifecycleInfo.LIFECYCLE_STATE_FORENSIC_ANALYSIS:
+                        firmwareUpdateButton.setEnabled(true);
+                        break;
+                    case Device.LifecycleInfo.LIFECYCLE_STATE_DECOMMISSIONED:
+                    default:
+                        break;
+                }
+            }
         }
     }
 }

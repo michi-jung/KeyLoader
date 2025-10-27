@@ -1,15 +1,19 @@
 package ly.secore.compute.DeviceManagementTool.GUI;
 
 import java.time.format.DateTimeFormatter;
+import java.util.EventObject;
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import ly.secore.compute.Device;
+import ly.secore.compute.DeviceManagementTool.Event.EventBus;
+import ly.secore.compute.DeviceManagementTool.Event.Listener;
+import ly.secore.compute.DeviceManagementTool.Event.UpdateDeviceInformationRequested;
 import net.miginfocom.swing.MigLayout;
 
-public class IncarnationInformationPanel extends JPanel {
+public class IncarnationInformationPanel extends JPanel implements Listener{
     private static final long serialVersionUID = 1L;
 
     private JLabel timeOfReincarnationLabel;
@@ -21,8 +25,9 @@ public class IncarnationInformationPanel extends JPanel {
     private JLabel masterKeyIdLabel;
     private JLabel masterKeyIdValue;
 
-    public IncarnationInformationPanel()
+    public IncarnationInformationPanel(EventBus eventBus)
     {
+        eventBus.addListener(this);
         initComponents();
     }
 
@@ -33,6 +38,7 @@ public class IncarnationInformationPanel extends JPanel {
             devicePersonalityValue.setText("N/A");
             operatingModeValue.setText("N/A");
             masterKeyIdValue.setText("N/A");
+            setEnabled(false);
         } else {
             timeOfReincarnationValue.setText(reincarnationInfo.getTimeOfReincarnation()
                 .format(DateTimeFormatter.ofLocalizedDateTime(java.time.format.FormatStyle.FULL)));
@@ -43,9 +49,17 @@ public class IncarnationInformationPanel extends JPanel {
             operatingModeValue.setText(reincarnationInfo.getOperatingModeName()
                 + " (" + reincarnationInfo.getOperatingMode() + ")");
             masterKeyIdValue.setText(reincarnationInfo.getMasterKeyIdName());
+            setEnabled(true);
         }
 
         SwingUtilities.windowForComponent(this).pack();
+    }
+
+    public void actionRequested(EventObject event) {
+        if (event instanceof UpdateDeviceInformationRequested) {
+            UpdateDeviceInformationRequested updateEvent = (UpdateDeviceInformationRequested)event;
+            setIncarnationInfo(updateEvent.getDeviceInformation().getReincarnationInfo());
+        }
     }
 
     @Override
