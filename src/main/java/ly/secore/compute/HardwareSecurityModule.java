@@ -14,6 +14,8 @@
 
 package ly.secore.compute;
 
+import com.mythosil.sss4j.Share;
+import com.mythosil.sss4j.Sss4j;
 import com.sun.jna.Memory;
 import iaik.pkcs.pkcs11.wrapper.CK_ATTRIBUTE;
 import iaik.pkcs.pkcs11.wrapper.CK_ECDH1_DERIVE_PARAMS;
@@ -23,17 +25,14 @@ import iaik.pkcs.pkcs11.wrapper.PKCS11;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Connector;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Constants;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Exception;
-
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
-
+import java.util.ArrayList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import com.mythosil.sss4j.Share;
-import com.mythosil.sss4j.Sss4j;
 
 public class HardwareSecurityModule implements AutoCloseable {
   private static final Logger logger = LogManager.getLogger(HardwareSecurityModule.class);
@@ -573,6 +572,188 @@ public class HardwareSecurityModule implements AutoCloseable {
     }
 
     return hKeys[0];
+  }
+
+  public long[] createSigningKeyPair(String label)
+      throws IOException, PKCS11Exception
+  {
+    CK_ATTRIBUTE[] applicationSigningPublicKeyTemplate = new CK_ATTRIBUTE[8];
+
+    applicationSigningPublicKeyTemplate[0] = new CK_ATTRIBUTE();
+    applicationSigningPublicKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    applicationSigningPublicKeyTemplate[0].pValue = PKCS11Constants.CKO_PUBLIC_KEY;
+
+    applicationSigningPublicKeyTemplate[1] = new CK_ATTRIBUTE();
+    applicationSigningPublicKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    applicationSigningPublicKeyTemplate[1].pValue = PKCS11Constants.CKK_RSA;
+
+    applicationSigningPublicKeyTemplate[2] = new CK_ATTRIBUTE();
+    applicationSigningPublicKeyTemplate[2].type = PKCS11Constants.CKA_LABEL;
+    applicationSigningPublicKeyTemplate[2].pValue = label.toCharArray();
+
+    applicationSigningPublicKeyTemplate[3] = new CK_ATTRIBUTE();
+    applicationSigningPublicKeyTemplate[3].type = PKCS11Constants.CKA_MODULUS_BITS;
+    applicationSigningPublicKeyTemplate[3].pValue = 3072;
+
+    applicationSigningPublicKeyTemplate[4] = new CK_ATTRIBUTE();
+    applicationSigningPublicKeyTemplate[4].type = PKCS11Constants.CKA_PUBLIC_EXPONENT;
+    applicationSigningPublicKeyTemplate[4].pValue = HexFormat.of().parseHex("010001");
+
+    applicationSigningPublicKeyTemplate[5] = new CK_ATTRIBUTE();
+    applicationSigningPublicKeyTemplate[5].type = PKCS11Constants.CKA_TOKEN;
+    applicationSigningPublicKeyTemplate[5].pValue = false;
+
+    applicationSigningPublicKeyTemplate[6] = new CK_ATTRIBUTE();
+    applicationSigningPublicKeyTemplate[6].type = PKCS11Constants.CKA_VERIFY;
+    applicationSigningPublicKeyTemplate[6].pValue = true;
+
+    applicationSigningPublicKeyTemplate[7] = new CK_ATTRIBUTE();
+    applicationSigningPublicKeyTemplate[7].type = PKCS11Constants.CKA_EXTRACTABLE;
+    applicationSigningPublicKeyTemplate[7].pValue = true;
+
+    CK_ATTRIBUTE[] applicationSigningPrivateKeyTemplate = new CK_ATTRIBUTE[6];
+
+    applicationSigningPrivateKeyTemplate[0] = new CK_ATTRIBUTE();
+    applicationSigningPrivateKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    applicationSigningPrivateKeyTemplate[0].pValue = PKCS11Constants.CKO_PRIVATE_KEY;
+
+    applicationSigningPrivateKeyTemplate[1] = new CK_ATTRIBUTE();
+    applicationSigningPrivateKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    applicationSigningPrivateKeyTemplate[1].pValue = PKCS11Constants.CKK_RSA;
+
+    applicationSigningPrivateKeyTemplate[2] = new CK_ATTRIBUTE();
+    applicationSigningPrivateKeyTemplate[2].type = PKCS11Constants.CKA_LABEL;
+    applicationSigningPrivateKeyTemplate[2].pValue = label.toCharArray();
+
+    applicationSigningPrivateKeyTemplate[3] = new CK_ATTRIBUTE();
+    applicationSigningPrivateKeyTemplate[3].type = PKCS11Constants.CKA_TOKEN;
+    applicationSigningPrivateKeyTemplate[3].pValue = false;
+
+    applicationSigningPrivateKeyTemplate[4] = new CK_ATTRIBUTE();
+    applicationSigningPrivateKeyTemplate[4].type = PKCS11Constants.CKA_SIGN;
+    applicationSigningPrivateKeyTemplate[4].pValue = true;
+
+    applicationSigningPrivateKeyTemplate[5] = new CK_ATTRIBUTE();
+    applicationSigningPrivateKeyTemplate[5].type = PKCS11Constants.CKA_EXTRACTABLE;
+    applicationSigningPrivateKeyTemplate[5].pValue = true;
+
+    CK_MECHANISM ckm_rsa_key_pair_gen = new CK_MECHANISM();
+    ckm_rsa_key_pair_gen.mechanism = PKCS11Constants.CKM_RSA_PKCS_KEY_PAIR_GEN;
+    ckm_rsa_key_pair_gen.pParameter = null;
+
+    return p11.C_GenerateKeyPair(hSession,
+                                 ckm_rsa_key_pair_gen,
+                                 applicationSigningPublicKeyTemplate,
+                                 applicationSigningPrivateKeyTemplate,
+                                 true);
+  }
+
+  public long createKeyBlockProtectionKey(String label, byte[] keyBlockProtectionKeyValue)
+      throws IOException, PKCS11Exception
+  {
+    CK_ATTRIBUTE[] keyBlockProtectionKeyTemplate = new CK_ATTRIBUTE[8];
+
+    keyBlockProtectionKeyTemplate[0] = new CK_ATTRIBUTE();
+    keyBlockProtectionKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    keyBlockProtectionKeyTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
+
+    keyBlockProtectionKeyTemplate[1] = new CK_ATTRIBUTE();
+    keyBlockProtectionKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    keyBlockProtectionKeyTemplate[1].pValue = PKCS11Constants.CKK_AES;
+
+    keyBlockProtectionKeyTemplate[2] = new CK_ATTRIBUTE();
+    keyBlockProtectionKeyTemplate[2].type = PKCS11Constants.CKA_VALUE;
+    keyBlockProtectionKeyTemplate[2].pValue = keyBlockProtectionKeyValue;
+
+    keyBlockProtectionKeyTemplate[3] = new CK_ATTRIBUTE();
+    keyBlockProtectionKeyTemplate[3].type = PKCS11Constants.CKA_LABEL;
+    keyBlockProtectionKeyTemplate[3].pValue = label.toCharArray();
+
+    keyBlockProtectionKeyTemplate[4] = new CK_ATTRIBUTE();
+    keyBlockProtectionKeyTemplate[4].type = PKCS11Constants.CKA_WRAP;
+    keyBlockProtectionKeyTemplate[4].pValue = true;
+
+    keyBlockProtectionKeyTemplate[5] = new CK_ATTRIBUTE();
+    keyBlockProtectionKeyTemplate[5].type = PKCS11Constants.CKA_UNWRAP;
+    keyBlockProtectionKeyTemplate[5].pValue = true;
+
+    keyBlockProtectionKeyTemplate[6] = new CK_ATTRIBUTE();
+    keyBlockProtectionKeyTemplate[6].type = CKA_X9_143_KBH;
+    keyBlockProtectionKeyTemplate[6].pValue = new String("D0016K1AB00N0000").toCharArray();
+
+    keyBlockProtectionKeyTemplate[7] = new CK_ATTRIBUTE();
+    keyBlockProtectionKeyTemplate[7].type = PKCS11Constants.CKA_TOKEN;
+    keyBlockProtectionKeyTemplate[7].pValue = false;
+
+    return p11.C_CreateObject(hSession, keyBlockProtectionKeyTemplate, true);
+  }
+
+  public List<String> generateRootHSMKeyblocks(byte[] rootHsmKbpkValue)
+      throws IOException, PKCS11Exception
+  {
+    long hRootHsmKeyblockProtectionKey = createKeyBlockProtectionKey("ROOT_HSM_KBPK",
+                                                                     rootHsmKbpkValue);
+    long[] hSigningKeyPair = createSigningKeyPair("FW_SIGNING");
+
+    CK_ATTRIBUTE[] publicKeyInfoAttr = new CK_ATTRIBUTE[1];
+    publicKeyInfoAttr[0] = new CK_ATTRIBUTE();
+    publicKeyInfoAttr[0].type = PKCS11Constants.CKA_PUBLIC_KEY_INFO;
+    publicKeyInfoAttr[0].pValue = null;
+
+    p11.C_GetAttributeValue(hSession, hSigningKeyPair[0], publicKeyInfoAttr, true);
+
+    if (!(publicKeyInfoAttr[0].pValue instanceof byte[])) {
+      throw new IOException("Failed to get public key info for signing key pair.");
+    }
+
+    List<String> result = new ArrayList<>();
+    result.add(HexFormat.of().withUpperCase().formatHex((byte[])publicKeyInfoAttr[0].pValue));
+
+    CK_MECHANISM ckm_x9_143_key_wrap = new CK_MECHANISM();
+    ckm_x9_143_key_wrap.mechanism = CKM_X9_143_KEY_WRAP;
+
+    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RV00N0000").toCharArray();
+    byte[] keyblock = p11.C_WrapKey(hSession,
+                                    ckm_x9_143_key_wrap,
+                                    hRootHsmKeyblockProtectionKey,
+                                    hSigningKeyPair[0],
+                                    true);
+    p11.C_DestroyObject(hSession, hSigningKeyPair[0]);
+    result.add(new String(keyblock, StandardCharsets.UTF_8));
+
+    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RS00N0000").toCharArray();
+    keyblock = p11.C_WrapKey(hSession,
+                             ckm_x9_143_key_wrap,
+                             hRootHsmKeyblockProtectionKey,
+                             hSigningKeyPair[1],
+                             true);
+    p11.C_DestroyObject(hSession, hSigningKeyPair[1]);
+    result.add(new String(keyblock, StandardCharsets.UTF_8));
+
+    hSigningKeyPair = createSigningKeyPair("APP_SIGNING");
+
+    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RV00N0000").toCharArray();
+    keyblock = p11.C_WrapKey(hSession,
+                             ckm_x9_143_key_wrap,
+                             hRootHsmKeyblockProtectionKey,
+                             hSigningKeyPair[0],
+                             true);
+    p11.C_DestroyObject(hSession, hSigningKeyPair[0]);
+
+    result.add(new String(keyblock, StandardCharsets.UTF_8));
+
+    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RS00N0000").toCharArray();
+    keyblock = p11.C_WrapKey(hSession,
+                             ckm_x9_143_key_wrap,
+                             hRootHsmKeyblockProtectionKey,
+                             hSigningKeyPair[1],
+                             true);
+    p11.C_DestroyObject(hSession, hSigningKeyPair[1]);
+    result.add(new String(keyblock, StandardCharsets.UTF_8));
+
+    p11.C_DestroyObject(hSession, hRootHsmKeyblockProtectionKey);
+
+    return result;
   }
 
   public List<Share> createRandomMasterEncryptionKeyShares()
