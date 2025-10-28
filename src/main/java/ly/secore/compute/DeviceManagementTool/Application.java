@@ -43,6 +43,39 @@ public class Application implements Listener {
         mainWindow.setVisible(true);
     }
 
+    protected void connectToDevice() {
+        if (computeDevice != null) {
+            throw new IllegalStateException("Already connected to a device");
+        }
+
+        try {
+            computeDevice = new Device(uartPath);
+            computeDevice.openServiceSession(1);
+            deviceInformation.setDeviceConnected(true);
+            deviceInformation.setManufacturingInfo(computeDevice.getManufacturingInfo());
+            deviceInformation.setReincarnationInfo(computeDevice.getReincarnationInfo());
+            deviceInformation.setDDM885Info(computeDevice.getDDM885Info());
+            deviceInformation.setLifecycleInfo(computeDevice.getLifecycleInfo());
+        } catch (IOException e) {
+            if (computeDevice != null) {
+                computeDevice.close();
+                computeDevice = null;
+            }
+            try {
+                computeDevice = new Device(uartPath);
+                deviceInformation.setDeviceConnected(true);
+                deviceInformation.setManufacturingInfo(null);
+                deviceInformation.setReincarnationInfo(null);
+                deviceInformation.setDDM885Info(null);
+                deviceInformation.setLifecycleInfo(new Device.LifecycleInfo(
+                    Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURED));
+            } catch (IOException e2) {
+                computeDevice = null;
+                deviceInformation.setDeviceConnected(false);
+            }
+        }
+    }
+
     public void actionRequested(EventObject requestEvent)
     {
         try {
@@ -50,30 +83,24 @@ public class Application implements Listener {
                 ConnectToDeviceRequested connectRequest = (ConnectToDeviceRequested) requestEvent;
                 uartPath = connectRequest.getUartPath().toString();
 
-                mainWindow.signalBusy();
-                computeDevice = new Device(uartPath);
+                mainWindow.showBusyOverlay(true);
 
-                try {
-                    computeDevice.openServiceSession(1);
-                    deviceInformation.setDeviceConnected(true);
-                    deviceInformation.setManufacturingInfo(computeDevice.getManufacturingInfo());
-                    deviceInformation.setReincarnationInfo(computeDevice.getReincarnationInfo());
-                    deviceInformation.setDDM885Info(computeDevice.getDDM885Info());
-                    deviceInformation.setLifecycleInfo(computeDevice.getLifecycleInfo());
-                } catch (IOException e) {
-                    computeDevice.close();
-                    Thread.sleep(1);
-                    computeDevice = new Device(uartPath);
-                    deviceInformation.setDeviceConnected(true);
-                    deviceInformation.setManufacturingInfo(null);
-                    deviceInformation.setReincarnationInfo(null);
-                    deviceInformation.setDDM885Info(null);
-                    deviceInformation.setLifecycleInfo(new Device.LifecycleInfo(
-                        Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURED));
-                }
+                SwingWorker<Void, Void> worker = new SwingWorker<>() {
+                    @Override
+                    protected Void doInBackground() throws Exception {
+                        connectToDevice();
+                        return null;
+                    }
 
-                eventBus.updateDeviceInformation(this, deviceInformation);
-                mainWindow.signalReady();
+                    @Override
+                    protected void done() {
+                        System.out.println("Connected to device: " + (deviceInformation.isDeviceConnected() ? "Yes" : "No"));
+                        eventBus.updateDeviceInformation(this, deviceInformation);
+                        mainWindow.showBusyOverlay(false);
+                    }
+                };
+
+                worker.execute();
             } else if (requestEvent instanceof DisconnectFromDeviceRequested) {
                 if (computeDevice != null &&
                     deviceInformation.getLifecycleInfo().state !=
@@ -93,9 +120,11 @@ public class Application implements Listener {
 
                 eventBus.updateDeviceInformation(this, deviceInformation);
             } else if (requestEvent instanceof FactoryFlashRequested) {
+                mainWindow.showBusyOverlay(true);
+
                 SwingWorker<Void, Void> worker = new SwingWorker<>() {
                     @Override
-                    protected Void doInBackground() throws Exception {
+                    protected Void doInBackground() {
                         FactoryFlashRequested factoryFlashRequest =
                             (FactoryFlashRequested)requestEvent;
 
@@ -103,41 +132,23 @@ public class Application implements Listener {
                             computeDevice.factoryFlash(getClass()
                                 .getResourceAsStream(factoryFlashRequest.getInitialFileName()));
                         } catch (IOException e) {
-                            System.err.println("Failed to perform factory flash: " + e.getMessage());
+                            System.err.println("Factory flashing failed: " + e.getMessage());
                         }
+
+                        computeDevice.close();
+                        computeDevice = null;
 
                         return null;
                     }
 
                     @Override
                     protected void done() {
-                        try {
-                            computeDevice.close();
-                            computeDevice = null;
-                            computeDevice = new Device(uartPath);
-                            computeDevice.openServiceSession(1);
-                            deviceInformation.setDeviceConnected(true);
-                            deviceInformation.setManufacturingInfo(computeDevice.getManufacturingInfo());
-                            deviceInformation.setReincarnationInfo(computeDevice.getReincarnationInfo());
-                            deviceInformation.setDDM885Info(computeDevice.getDDM885Info());
-                            deviceInformation.setLifecycleInfo(computeDevice.getLifecycleInfo());
-                        } catch (IOException e) {
-                            e.printStackTrace(System.err);
-
-                            computeDevice.close();
-                            computeDevice = null;
-
-                            deviceInformation.setDeviceConnected(false);
-                            deviceInformation.setManufacturingInfo(null);
-                            deviceInformation.setReincarnationInfo(null);
-                            deviceInformation.setDDM885Info(null);
-                            deviceInformation.setLifecycleInfo(null);
-                        }
+                        connectToDevice();
                         eventBus.updateDeviceInformation(this, deviceInformation);
-                        mainWindow.signalReady();
+                        mainWindow.showBusyOverlay(false);
                     }
                 };
-                mainWindow.signalBusy();
+
                 worker.execute();
             }
         }

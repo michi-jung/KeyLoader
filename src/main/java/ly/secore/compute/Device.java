@@ -46,6 +46,7 @@ public class Device implements AutoCloseable {
     public int timestamp;
     public int tamper_status;
 
+    public static final int LIFECYCLE_STATE_UNKNOWN            = -2;
     public static final int LIFECYCLE_STATE_MANUFACTURED       = -1;
     public static final int LIFECYCLE_STATE_MANUFACTURING_TEST = 0;
     public static final int LIFECYCLE_STATE_PERSONALIZATION    = 1;

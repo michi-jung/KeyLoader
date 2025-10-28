@@ -1,6 +1,7 @@
 package ly.secore.compute.DeviceManagementTool.GUI;
 
 import java.awt.Cursor;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JSplitPane;
 import javax.swing.SwingUtilities;
@@ -15,6 +16,7 @@ public class MainWindow extends JFrame {
         super("compute secore.ly® Device Management Tool");
 
         setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
+        installBusyGlassPane();
 
         sidebar = new Sidebar(eventBus);
         lifecycleInformationPanel = new LifecycleInformationPanel(eventBus);
@@ -34,19 +36,37 @@ public class MainWindow extends JFrame {
         setExtendedState(JFrame.MAXIMIZED_BOTH);
     }
 
-    public void signalBusy() {
-        if (SwingUtilities.isEventDispatchThread()) {
-            sidebar.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        } else {
-            SwingUtilities.invokeLater(() -> sidebar.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)));
-        }
+    private void installBusyGlassPane() {
+        JComponent glass = new JComponent() {
+            @Override public boolean isOpaque() { return false; }
+        };
+
+        // Empty listeners ensure mouse events terminate at the glass pane
+        java.awt.event.MouseAdapter eater = new java.awt.event.MouseAdapter() {};
+        glass.addMouseListener(eater);
+        glass.addMouseMotionListener(eater);
+        glass.addMouseWheelListener(eater);
+
+        setGlassPane(glass);            // attach to this JFrame
+        glass.setVisible(false);        // start hidden
     }
 
-    public void signalReady() {
-        if (SwingUtilities.isEventDispatchThread()) {
-            sidebar.setCursor(Cursor.getDefaultCursor());
-        } else {
-            SwingUtilities.invokeLater(() -> sidebar.setCursor(Cursor.getDefaultCursor()));
+    public void showBusyOverlay(boolean busy) {
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(() -> showBusyOverlay(busy));
+            return;
         }
+
+        JComponent glass = (JComponent)getGlassPane();
+        glass.setCursor(Cursor.getPredefinedCursor(
+            busy ? Cursor.WAIT_CURSOR : Cursor.DEFAULT_CURSOR));
+        glass.setVisible(busy);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        sidebar.setEnabled(enabled);
+        lifecycleInformationPanel.setEnabled(enabled);
     }
 }

@@ -30,6 +30,7 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
     private JButton firmwareUpdateButton = new JButton("Firmware Update");
     private JButton applicationUpdateButton = new JButton("Application Update");
     private VitalProductDataPanel vitalProductDataPanel;
+    private boolean enabled = true;
 
     public Sidebar(EventBus eventBus) {
         GridBagConstraints gbc = new GridBagConstraints();
@@ -85,6 +86,58 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
         }
     }
 
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        this.enabled = enabled;
+        updateWidgets();
+    }
+
+    protected void updateWidgets() {
+        if (deviceInformation.isDeviceConnected()) {
+            connectButton.setText("Disconnect from Device");
+            uartComboBox.setEnabled(false);
+        } else {
+            connectButton.setText("Connect to Device");
+            uartComboBox.setEnabled(enabled);
+        }
+
+        connectButton.setEnabled(enabled);
+
+        productSelectorPanel.setEnabled(false);
+        factoryFlashButton.setEnabled(false);
+        firmwareUpdateButton.setEnabled(false);
+        applicationUpdateButton.setEnabled(false);
+
+        if (enabled && deviceInformation.getLifecycleInfo() != null)
+        {
+            switch (deviceInformation.getLifecycleInfo().state)
+            {
+                case Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURED:
+                    factoryFlashButton.setEnabled(
+                        productSelectorPanel.getSelectedProductDescriptor() != null);
+                    productSelectorPanel.setEnabled(true);
+                    break;
+                case Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURING_TEST:
+                    firmwareUpdateButton.setEnabled(true);
+                    break;
+                case Device.LifecycleInfo.LIFECYCLE_STATE_PERSONALIZATION:
+                    firmwareUpdateButton.setEnabled(true);
+                    break;
+                case Device.LifecycleInfo.LIFECYCLE_STATE_OPERATION:
+                    firmwareUpdateButton.setEnabled(true);
+                    applicationUpdateButton.setEnabled(true);
+                    break;
+                case Device.LifecycleInfo.LIFECYCLE_STATE_FORENSIC_ANALYSIS:
+                    firmwareUpdateButton.setEnabled(true);
+                    break;
+                case Device.LifecycleInfo.LIFECYCLE_STATE_DECOMMISSIONED:
+                default:
+                    break;
+            }
+        }
+    }
+
     public void actionRequested(EventObject requestEvent) {
         if (requestEvent instanceof UpdateUartPathsRequested) {
             uartComboBox.removeAllItems();
@@ -106,47 +159,7 @@ public class Sidebar extends JPanel implements ActionListener, Listener {
         } else if (requestEvent instanceof UpdateDeviceInformationRequested) {
             deviceInformation =
                 ((UpdateDeviceInformationRequested)requestEvent).getDeviceInformation();
-
-            if (deviceInformation.isDeviceConnected()) {
-                connectButton.setText("Disconnect from Device");
-                uartComboBox.setEnabled(false);
-            } else {
-                connectButton.setText("Connect to Device");
-                uartComboBox.setEnabled(true);
-            }
-
-            productSelectorPanel.setEnabled(false);
-            factoryFlashButton.setEnabled(false);
-            firmwareUpdateButton.setEnabled(false);
-            applicationUpdateButton.setEnabled(false);
-
-            if (deviceInformation.getLifecycleInfo() != null)
-            {
-                switch (deviceInformation.getLifecycleInfo().state)
-                {
-                    case Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURED:
-                        factoryFlashButton.setEnabled(
-                            productSelectorPanel.getSelectedProductDescriptor() != null);
-                        productSelectorPanel.setEnabled(true);
-                        break;
-                    case Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURING_TEST:
-                        firmwareUpdateButton.setEnabled(true);
-                        break;
-                    case Device.LifecycleInfo.LIFECYCLE_STATE_PERSONALIZATION:
-                        firmwareUpdateButton.setEnabled(true);
-                        break;
-                    case Device.LifecycleInfo.LIFECYCLE_STATE_OPERATION:
-                        firmwareUpdateButton.setEnabled(true);
-                        applicationUpdateButton.setEnabled(true);
-                        break;
-                    case Device.LifecycleInfo.LIFECYCLE_STATE_FORENSIC_ANALYSIS:
-                        firmwareUpdateButton.setEnabled(true);
-                        break;
-                    case Device.LifecycleInfo.LIFECYCLE_STATE_DECOMMISSIONED:
-                    default:
-                        break;
-                }
-            }
+            updateWidgets();
         }
     }
 }
