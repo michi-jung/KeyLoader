@@ -20,13 +20,15 @@ import ly.secore.compute.DeviceManagementTool.Event.EventBus;
 import ly.secore.compute.DeviceManagementTool.Event.FactoryFlashRequested;
 import ly.secore.compute.DeviceManagementTool.Event.Listener;
 import ly.secore.compute.DeviceManagementTool.GUI.MainWindow;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Main application class for displaying manufacturing and incarnation information.
  */
 
 public class Application implements Listener {
-
+    private static final Logger logger = LogManager.getLogger(Application.class);
     private MainWindow mainWindow;
     private Device computeDevice;
     private DeviceInformation deviceInformation = new DeviceInformation();
@@ -76,6 +78,28 @@ public class Application implements Listener {
         }
     }
 
+    public void disconnectFromDevice() {
+        if (computeDevice != null &&
+            deviceInformation.getLifecycleInfo().state !=
+                Device.LifecycleInfo.LIFECYCLE_STATE_MANUFACTURED)
+        {
+            try {
+                computeDevice.closeServiceSession();
+            } catch (IOException e) {
+                logger.error("Failed to close service session: " + e.getMessage());
+            }
+        }
+
+        computeDevice.close();
+        computeDevice = null;
+
+        deviceInformation.setDeviceConnected(false);
+        deviceInformation.setManufacturingInfo(null);
+        deviceInformation.setReincarnationInfo(null);
+        deviceInformation.setDDM885Info(null);
+        deviceInformation.setLifecycleInfo(null);
+    }
+
     public void actionRequested(EventObject requestEvent)
     {
         try {
@@ -94,7 +118,6 @@ public class Application implements Listener {
 
                     @Override
                     protected void done() {
-                        System.out.println("Connected to device: " + (deviceInformation.isDeviceConnected() ? "Yes" : "No"));
                         eventBus.updateDeviceInformation(this, deviceInformation);
                         mainWindow.showBusyOverlay(false);
                     }
@@ -175,6 +198,12 @@ public class Application implements Listener {
     }
 
     public static void main(String[] args) {
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            System.err.println("Uncaught exception in " + t.getName() + ": " + e);
+            e.printStackTrace();
+            System.exit(1);
+        });
+
         FlatLightLaf.setup();
 
         SwingUtilities.invokeLater(() -> {

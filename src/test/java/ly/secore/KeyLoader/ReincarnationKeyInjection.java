@@ -1,17 +1,17 @@
 package ly.secore.KeyLoader;
 
 import ly.secore.compute.Device;
-import ly.secore.compute.KeyLoader;
+import ly.secore.compute.HardwareSecurityModule;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 class ReincarnationKeyInjection {
   public static void main(String args[]) {
-    try (KeyLoader keyLoader = new KeyLoader("/usr/local/lib/libcryptok.so", 0);
+    try (HardwareSecurityModule keyLoader = new HardwareSecurityModule("/usr/local/lib/libcryptok.so", 0);
          Device computeDevice = new Device(args[0]))
     {
       BufferedReader bufferRead = new BufferedReader(new InputStreamReader(System.in));
-      KeyLoader.SetIncKeyContext ctx;
+      HardwareSecurityModule.SetIncKeyContext ctx;
 
       computeDevice.openServiceSession(1);
 

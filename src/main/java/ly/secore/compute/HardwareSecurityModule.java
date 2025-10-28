@@ -1,5 +1,5 @@
 /*
- * ly.secore.compute.KeyLoader
+ * ly.secore.compute.HardwareSecurityModule
  * Load keys from an HSM to devices powered by compute secore.ly Firmware
  *
  * Copyright (c) 2025 secore.ly GmbH
@@ -23,16 +23,27 @@ import iaik.pkcs.pkcs11.wrapper.PKCS11;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Connector;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Constants;
 import iaik.pkcs.pkcs11.wrapper.PKCS11Exception;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HexFormat;
+import java.util.List;
 
-public class KeyLoader implements AutoCloseable {
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import com.mythosil.sss4j.Share;
+import com.mythosil.sss4j.Sss4j;
+
+public class HardwareSecurityModule implements AutoCloseable {
+  private static final Logger logger = LogManager.getLogger(HardwareSecurityModule.class);
+
   public final static int KEY_AGREEMENT_RANDOM_LEN       = 32;
   public final static int SECP256R1_PUBLIC_KEY_INFO_LEN  = 91;
   public final static int SECP256R1_PUBLIC_KEY_LEN       = 67;
   public final static int SECP256R1_SIGNATURE_LEN        = 64;
   public final static int AES_CMAC_LEN                   = 16;
+  public final static int AES_256_KEY_LEN                = 32;
 
   public final static long CKA_X9_143_KBH      = 0x85EC0007L;
   public final static long CKM_X9_143_KEY_WRAP = 0x85EC0001L;
@@ -53,7 +64,7 @@ public class KeyLoader implements AutoCloseable {
     public long hInitiatorEphPrivKey;
   };
 
-  public KeyLoader(String pkcs11ModuleFilename, long slotID)
+  public HardwareSecurityModule(String pkcs11ModuleFilename, long slotID)
       throws IOException, PKCS11Exception
   {
     p11 = PKCS11Connector.connectToPKCS11Module(pkcs11ModuleFilename);
@@ -257,8 +268,8 @@ public class KeyLoader implements AutoCloseable {
     CK_ATTRIBUTE[] initiatorMACKeyTemplate = new CK_ATTRIBUTE[4];
     CK_ATTRIBUTE[] ephKBPKTemplate = new CK_ATTRIBUTE[5];
     long extractParams;
-    long masterSecretValueLen = 96;
-    long macKeyValueLen = 32;
+    long masterSecretValueLen = 3 * AES_256_KEY_LEN;
+    long macKeyValueLen = AES_256_KEY_LEN;
     long hMasterSecret;
     long hResponderMACKey;
     long hInitiatorMACKey;
@@ -562,6 +573,23 @@ public class KeyLoader implements AutoCloseable {
     }
 
     return hKeys[0];
+  }
+
+  public List<Share> createRandomMasterEncryptionKeyShares()
+  {
+    byte[] randomMasterEncryptionKey = new byte[AES_256_KEY_LEN];
+
+    try {
+      p11.C_GenerateRandom(hSession, randomMasterEncryptionKey);
+    } catch (PKCS11Exception e) {
+      throw new RuntimeException("Failed to generate random master encryption key: " +
+                                 e.getMessage(), e);
+    }
+
+    logger.debug("Generated random master encryption key: " +
+                  HexFormat.of().formatHex(randomMasterEncryptionKey));
+
+    return Sss4j.split(randomMasterEncryptionKey, 2, 3);
   }
 
   protected PKCS11 p11;

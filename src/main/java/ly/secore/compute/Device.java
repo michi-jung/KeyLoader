@@ -459,11 +459,11 @@ public class Device implements AutoCloseable {
     }
   }
 
-  public void setIncKeyStep1(KeyLoader.SetIncKeyContext ctx)
+  public void setIncKeyStep1(HardwareSecurityModule.SetIncKeyContext ctx)
     throws IOException
   {
-    Memory responderRandom = new Memory(KeyLoader.KEY_AGREEMENT_RANDOM_LEN);
-    Memory responderEphPubKey = new Memory(KeyLoader.SECP256R1_PUBLIC_KEY_LEN);
+    Memory responderRandom = new Memory(HardwareSecurityModule.KEY_AGREEMENT_RANDOM_LEN);
+    Memory responderEphPubKey = new Memory(HardwareSecurityModule.SECP256R1_PUBLIC_KEY_LEN);
     int ret = 0;
 
     ret = ComputeDeviceProxyLibrary.INSTANCE
@@ -480,10 +480,10 @@ public class Device implements AutoCloseable {
     ctx.responderEphPubKey = responderEphPubKey.getByteArray(0, (int)responderEphPubKey.size());
   }
 
-  public void setIncKeyStep2(KeyLoader.SetIncKeyContext ctx)
+  public void setIncKeyStep2(HardwareSecurityModule.SetIncKeyContext ctx)
     throws IOException
   {
-    Memory responderCMAC = new Memory(KeyLoader.AES_CMAC_LEN);
+    Memory responderCMAC = new Memory(HardwareSecurityModule.AES_CMAC_LEN);
     int ret;
 
     ret = ComputeDeviceProxyLibrary.INSTANCE
@@ -498,7 +498,7 @@ public class Device implements AutoCloseable {
     ctx.responderCMAC = responderCMAC.getByteArray(0, (int)responderCMAC.size());
   }
 
-  public void setIncKeyStep3(KeyLoader.SetIncKeyContext ctx)
+  public void setIncKeyStep3(HardwareSecurityModule.SetIncKeyContext ctx)
     throws IOException
   {
     int ret;
