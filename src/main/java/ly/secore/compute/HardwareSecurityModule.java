@@ -574,6 +574,82 @@ public class HardwareSecurityModule implements AutoCloseable {
     return hKeys[0];
   }
 
+  public long[] createKeyLoadingDeviceAuthenticationKeyPair()
+      throws IOException, PKCS11Exception
+  {
+    CK_ATTRIBUTE[] pubKeyTemplate = new CK_ATTRIBUTE[3];
+
+    pubKeyTemplate[0] = new CK_ATTRIBUTE();
+    pubKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    pubKeyTemplate[0].pValue = PKCS11Constants.CKO_PUBLIC_KEY;
+
+    pubKeyTemplate[1] = new CK_ATTRIBUTE();
+    pubKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    pubKeyTemplate[1].pValue = PKCS11Constants.CKK_EC;
+
+    pubKeyTemplate[2] = new CK_ATTRIBUTE();
+    pubKeyTemplate[2].type = PKCS11Constants.CKA_EC_PARAMS;
+    pubKeyTemplate[2].pValue = OID_SECP256R1;
+
+    CK_ATTRIBUTE[] privKeyTemplate = new CK_ATTRIBUTE[3];
+
+    privKeyTemplate[0] = new CK_ATTRIBUTE();
+    privKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    privKeyTemplate[0].pValue = PKCS11Constants.CKO_PRIVATE_KEY;
+
+    privKeyTemplate[1] = new CK_ATTRIBUTE();
+    privKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    privKeyTemplate[1].pValue = PKCS11Constants.CKK_EC;
+
+    privKeyTemplate[2] = new CK_ATTRIBUTE();
+    privKeyTemplate[2].type = PKCS11Constants.CKA_SIGN;
+    privKeyTemplate[2].pValue = true;
+
+    CK_MECHANISM ckm_ec_key_pair_gen = new CK_MECHANISM();
+    ckm_ec_key_pair_gen.mechanism = PKCS11Constants.CKM_EC_KEY_PAIR_GEN;
+
+    return p11.C_GenerateKeyPair(hSession,
+                                 ckm_ec_key_pair_gen,
+                                 pubKeyTemplate,
+                                 privKeyTemplate,
+                                 true);
+  }
+
+  private long generateManufacturingResetSecretMasterKey()
+      throws IOException, PKCS11Exception
+  {
+    CK_ATTRIBUTE[] mfgResetMasterKeyTemplate = new CK_ATTRIBUTE[5];
+
+    mfgResetMasterKeyTemplate[0] = new CK_ATTRIBUTE();
+    mfgResetMasterKeyTemplate[0].type = PKCS11Constants.CKA_CLASS;
+    mfgResetMasterKeyTemplate[0].pValue = PKCS11Constants.CKO_SECRET_KEY;
+
+    mfgResetMasterKeyTemplate[1] = new CK_ATTRIBUTE();
+    mfgResetMasterKeyTemplate[1].type = PKCS11Constants.CKA_KEY_TYPE;
+    mfgResetMasterKeyTemplate[1].pValue = PKCS11Constants.CKK_AES;
+
+    mfgResetMasterKeyTemplate[2] = new CK_ATTRIBUTE();
+    mfgResetMasterKeyTemplate[2].type = PKCS11Constants.CKA_VALUE_LEN;
+    mfgResetMasterKeyTemplate[2].pValue = 32;
+
+    mfgResetMasterKeyTemplate[3] = new CK_ATTRIBUTE();
+    mfgResetMasterKeyTemplate[3].type = PKCS11Constants.CKA_LABEL;
+    mfgResetMasterKeyTemplate[3].pValue = new String("MFG_RESET_MASTER").toCharArray();
+
+    mfgResetMasterKeyTemplate[4] = new CK_ATTRIBUTE();
+    mfgResetMasterKeyTemplate[4].type = PKCS11Constants.CKA_ENCRYPT;
+    mfgResetMasterKeyTemplate[4].pValue = true;
+
+    CK_MECHANISM ckm_aes_key_gen = new CK_MECHANISM();
+    ckm_aes_key_gen.mechanism = PKCS11Constants.CKM_AES_KEY_GEN;
+    ckm_aes_key_gen.pParameter = null;
+
+    return p11.C_GenerateKey(hSession,
+                             ckm_aes_key_gen,
+                             mfgResetMasterKeyTemplate,
+                             true);
+  }
+
   public long[] createSigningKeyPair(String label)
       throws IOException, PKCS11Exception
   {
@@ -712,7 +788,7 @@ public class HardwareSecurityModule implements AutoCloseable {
     CK_MECHANISM ckm_x9_143_key_wrap = new CK_MECHANISM();
     ckm_x9_143_key_wrap.mechanism = CKM_X9_143_KEY_WRAP;
 
-    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RV00N0000").toCharArray();
+    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RV00N0010").toCharArray();
     byte[] keyblock = p11.C_WrapKey(hSession,
                                     ckm_x9_143_key_wrap,
                                     hRootHsmKeyblockProtectionKey,
@@ -721,7 +797,7 @@ public class HardwareSecurityModule implements AutoCloseable {
     p11.C_DestroyObject(hSession, hSigningKeyPair[0]);
     result.add(new String(keyblock, StandardCharsets.UTF_8));
 
-    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RS00N0000").toCharArray();
+    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RS00N0010").toCharArray();
     keyblock = p11.C_WrapKey(hSession,
                              ckm_x9_143_key_wrap,
                              hRootHsmKeyblockProtectionKey,
@@ -732,7 +808,7 @@ public class HardwareSecurityModule implements AutoCloseable {
 
     hSigningKeyPair = createSigningKeyPair("APP_SIGNING");
 
-    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RV00N0000").toCharArray();
+    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RV00N0010").toCharArray();
     keyblock = p11.C_WrapKey(hSession,
                              ckm_x9_143_key_wrap,
                              hRootHsmKeyblockProtectionKey,
@@ -742,13 +818,42 @@ public class HardwareSecurityModule implements AutoCloseable {
 
     result.add(new String(keyblock, StandardCharsets.UTF_8));
 
-    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RS00N0000").toCharArray();
+    ckm_x9_143_key_wrap.pParameter = new String("D0016S0RS00N0010").toCharArray();
     keyblock = p11.C_WrapKey(hSession,
                              ckm_x9_143_key_wrap,
                              hRootHsmKeyblockProtectionKey,
                              hSigningKeyPair[1],
                              true);
     p11.C_DestroyObject(hSession, hSigningKeyPair[1]);
+    result.add(new String(keyblock, StandardCharsets.UTF_8));
+
+    hSigningKeyPair = createKeyLoadingDeviceAuthenticationKeyPair();
+
+    CK_ATTRIBUTE[] ecPointAttr = new CK_ATTRIBUTE[1];
+    ecPointAttr[0] = new CK_ATTRIBUTE();
+    ecPointAttr[0].type = PKCS11Constants.CKA_EC_POINT;
+    p11.C_GetAttributeValue(hSession, hSigningKeyPair[0], ecPointAttr, true);
+    p11.C_DestroyObject(hSession, hSigningKeyPair[0]);
+    result.add(HexFormat.of().withUpperCase().formatHex((byte[])ecPointAttr[0].pValue));
+
+    ckm_x9_143_key_wrap.pParameter = new String("D0016S0ES00N0010").toCharArray();
+    keyblock = p11.C_WrapKey(hSession,
+                             ckm_x9_143_key_wrap,
+                             hRootHsmKeyblockProtectionKey,
+                             hSigningKeyPair[1],
+                             true);
+    p11.C_DestroyObject(hSession, hSigningKeyPair[1]);
+    result.add(new String(keyblock, StandardCharsets.UTF_8));
+
+    long hMfgResetMasterKey = generateManufacturingResetSecretMasterKey();
+
+    ckm_x9_143_key_wrap.pParameter = new String("D0016D0AE00N0020").toCharArray();
+    keyblock = p11.C_WrapKey(hSession,
+                             ckm_x9_143_key_wrap,
+                             hRootHsmKeyblockProtectionKey,
+                             hMfgResetMasterKey,
+                             true);
+    p11.C_DestroyObject(hSession, hMfgResetMasterKey);
     result.add(new String(keyblock, StandardCharsets.UTF_8));
 
     p11.C_DestroyObject(hSession, hRootHsmKeyblockProtectionKey);
