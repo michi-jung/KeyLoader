@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import java.util.HexFormat;
 import ly.secore.compute.HardwareSecurityModule;
 
-public class GenerateRootHSMKeyblocks {
+public class CreateDebugRootHSMKeyblocks {
     public static void main(String[] args) {
         if (args.length < 1) {
             System.err.println("Usage: java GenerateRootHSMKeyblocks <root-hsm-incarnation-key-value>");
@@ -25,7 +25,7 @@ public class GenerateRootHSMKeyblocks {
             "/usr/local/lib/libcryptok.so", 0))
         {
             // Generate and import the root HSM keyblocks into the HSM
-            rootHSMKeys = keyLoader.generateRootHSMKeyblocks(rootHsmIncarnationKeyValue);
+            rootHSMKeys = keyLoader.createDebugRootHSMKeyblocks(rootHsmIncarnationKeyValue);
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }
